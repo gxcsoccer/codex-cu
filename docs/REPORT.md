@@ -150,9 +150,9 @@ wording (we match the captured text), and app-specific instruction texts.
 ## 9. Verification
 
 ```
-Swift unit tests        65   (framing, RPC, actions, observation, format parity,
+Swift unit tests        73   (framing, RPC, actions, observation, format parity,
                              policy, screen lock, startApp, instructions, audio)
-Node protocol/client    63   (framing, envelopes, errors, cua, browser, CDP,
+Node protocol/client    76   (framing, envelopes, errors, cua, browser, CDP,
                              locators, DOM, audio, fuzzing, CLI)
 Integration (real socket) 7   (interop, concurrency, oversized frame, semantics,
                              approvals, malformed instructions, audio denial)

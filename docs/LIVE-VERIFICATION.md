@@ -59,9 +59,9 @@ Chrome for Testing on port 9555:
 PASS ping: CodexComputerUseIPC-5
 PASS listApps: 11 apps
 PASS getAppState: Window header present
-PASS screenshot: 246354 bytes
+PASS screenshot: 247099 bytes
 PASS audio: 26924 bytes, 24000 Hz, 2 ch
-PASS browser: 4 AX lines
+PASS browser: 3 AX lines
 ```
 
 The AX text starts with the window, matching the original capture:
