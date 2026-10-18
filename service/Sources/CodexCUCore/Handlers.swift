@@ -288,11 +288,18 @@ public final class DefaultHandlers: ServiceHandlers {
     let matches = NSWorkspace.shared.runningApplications.filter { running in
       running.bundleIdentifier == app || running.localizedName == app
     }
-    guard let running = matches.first else {
+    return try selectRunning(matches, app: app)
+  }
+
+  /// Pure selection rule: no match -> not found, more than one -> ambiguous.
+  public static func selectRunning<T>(_ matches: [T], app: String) throws -> T {
+    guard let first = matches.first else {
       throw ServiceError(.runningApplicationNotFound, "application not running: \(app)")
     }
-    if matches.count > 1 { throw ServiceError(.ambiguousApp, "ambiguous application: \(app)") }
-    return running
+    if matches.count > 1 {
+      throw ServiceError(.ambiguousApp, "ambiguous application: \(app)")
+    }
+    return first
   }
 
   private func isAllowed(_ app: String) -> Bool {

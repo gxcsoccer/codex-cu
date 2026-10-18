@@ -18,6 +18,20 @@ Then grant permissions (required by the same TCC gates as the original):
    binary;
 3. `launchctl kickstart -k gui/$UID/com.codex-cu.service`.
 
+## Approvals
+
+By default every app is allowed (documented deviation). To deny specific apps:
+
+```bash
+codex-cu --socket /tmp/cu.sock --approvals ~/approvals.json
+```
+
+```json
+{"apps": {"com.example.blocked": {"allowed": false}}}
+```
+
+Missing files, malformed JSON, and apps without an entry fail open.
+
 ## Manual
 
 ```bash

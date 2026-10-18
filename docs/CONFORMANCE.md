@@ -26,11 +26,12 @@ response and are documented as such.
 | `AppGetSkyshot` | AX text + screenshot | yes; focused-window root, localized roles | `FormatParityTests`, `ObservationTests` |
 | Screenshot | SCK → temp PNG → `file://` | same shape; old file removed | `ObservationTests` |
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
-| `AppPolicy` | approvals store | JSON allowlist, default allow (**deviation**) | `policyDenialBlocksActions` |
+| `AppPolicy` | approvals store | JSON allowlist (`--approvals`); explicit false -> `-10006`; missing/malformed/absent entry -> allow (**fail-open deviation**) | `PolicyTests`, integration test |
 | `PerformAction` | 9 action kinds | all 9 | `ActionTests` |
 | Audio recording | Start/Stop requests | **unsupported**, `-10004` | `audioRecordingIsExplicitlyUnsupported`, integration test |
 | Screen lock | `-10020` | observation/actions fail with `-10020` | `ScreenLockTests` |
 | `AppStart` errors | not found | `-10007` | integration test |
+| Ambiguous app match | `-10018` | `-10018` via `selectRunning` | `PolicyTests` |
 | `AppGetSkyshot` without TCC | `-10009` | `-10009` | integration test |
 
 Action semantics:

@@ -57,8 +57,8 @@ test('client and Swift service interoperate over the real socket', { skip: !avai
   assert.equal(stderr, '');
 });
 
-async function withService(socketPath, fn) {
-  const child = spawn(binary, ['--socket', socketPath], { stdio: ['ignore', 'pipe', 'pipe'] });
+async function withService(socketPath, fn, extraArgs = []) {
+  const child = spawn(binary, ['--socket', socketPath, ...extraArgs], { stdio: ['ignore', 'pipe', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', (chunk) => { stderr += chunk; });
   try {
@@ -152,6 +152,26 @@ test('policy, audio and appState semantics over the wire', { skip: !available },
         client.close();
       }
     });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('approvals file is honoured over the wire', { skip: !available }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-appr-'));
+  const socketPath = path.join(dir, 'cu.sock');
+  const approvals = path.join(dir, 'approvals.json');
+  fs.writeFileSync(approvals, JSON.stringify({ apps: { 'com.blocked.app': { allowed: false } } }));
+  try {
+    await withService(socketPath, async () => {
+      const client = new Client({ socketPath, timeoutMs: 5000 });
+      try {
+        assert.equal((await client.getAppPolicy('com.blocked.app')).allowed, false);
+        assert.equal((await client.getAppPolicy('com.allowed.app')).allowed, true);
+      } finally {
+        client.close();
+      }
+    }, ['--approvals', approvals]);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
