@@ -112,3 +112,40 @@ test('closes the connection on an oversized frame', { skip: !available }, async 
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('policy, audio and appState semantics over the wire', { skip: !available }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-sem-'));
+  const socketPath = path.join(dir, 'cu.sock');
+  try {
+    await withService(socketPath, async () => {
+      const client = new Client({ socketPath, timeoutMs: 5000 });
+      try {
+        const policy = await client.getAppPolicy('com.apple.finder');
+        assert.equal(policy.allowed, true);
+
+        await assert.rejects(
+          () => client.request('ComputerUseIPCStartAudioRecordingRequest', {}),
+          (error) => error instanceof CodexCuError && error.code === -10004,
+        );
+
+        await assert.rejects(
+          () => client.startApp('com.example.definitely-not-installed'),
+          (error) => error instanceof CodexCuError && error.code === -10007,
+        );
+
+        try {
+          const state = await client.getAppState('com.apple.finder');
+          assert.equal(typeof state.text, 'string');
+        } catch (error) {
+          // Headless CI: Finder may not run (-10007) and TCC is absent (-10009).
+          assert.ok(error instanceof CodexCuError);
+          assert.ok([-10007, -10009].includes(error.code), `unexpected code ${error.code}`);
+        }
+      } finally {
+        client.close();
+      }
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

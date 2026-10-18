@@ -89,8 +89,8 @@ The original client rejects a response unless:
 | `ComputerUseIPCAppGetSkyshotRequest` | `{app, disableDiff?}` |
 | `ComputerUseIPCAppPolicyRequest` | `{app}` |
 | `ComputerUseIPCAppPerformActionRequest` | `{app, action}` |
-| `ComputerUseIPCStartAudioRecordingRequest` | `{}` |
-| `ComputerUseIPCStopAudioRecordingRequest` | `{}` |
+| `ComputerUseIPCStartAudioRecordingRequest` | `{}` (this repo returns `-10004`, not implemented) |
+| `ComputerUseIPCStopAudioRecordingRequest` | `{}` (same) |
 
 `app` is a bundle identifier or application name string.
 

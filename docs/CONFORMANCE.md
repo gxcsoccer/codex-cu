@@ -28,6 +28,9 @@ response and are documented as such.
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
 | `AppPolicy` | approvals store | JSON allowlist, default allow (**deviation**) | `policyDenialBlocksActions` |
 | `PerformAction` | 9 action kinds | all 9 | `ActionTests` |
+| Audio recording | Start/Stop requests | **unsupported**, `-10004` | `audioRecordingIsExplicitlyUnsupported`, integration test |
+| `AppStart` errors | not found | `-10007` | integration test |
+| `AppGetSkyshot` without TCC | `-10009` | `-10009` | integration test |
 
 Action semantics:
 

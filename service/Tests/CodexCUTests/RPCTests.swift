@@ -91,3 +91,25 @@ struct FakeHandlers: ServiceHandlers {
   ], handlers: FakeHandlers())
   #expect(response?["result"] != nil)
 }
+
+@Test func audioRecordingIsExplicitlyUnsupported() {
+  for requestType in ["ComputerUseIPCStartAudioRecordingRequest", "ComputerUseIPCStopAudioRecordingRequest"] {
+    let response = RPC.handle([
+      "jsonrpc": "2.0", "id": 11, "method": "request",
+      "params": ["clientApiVersion": apiVersion, "requestType": requestType, "request": [:]],
+    ], handlers: FakeHandlers())
+    #expect((response?["error"] as? [String: Any])?["code"] as? Int == ServiceErrorCode.unhandledEvent.rawValue)
+  }
+}
+
+@Test func policyRequestIsDispatched() {
+  let response = RPC.handle([
+    "jsonrpc": "2.0", "id": 12, "method": "request",
+    "params": [
+      "clientApiVersion": apiVersion,
+      "requestType": "ComputerUseIPCAppPolicyRequest",
+      "request": ["app": "com.apple.finder"],
+    ],
+  ], handlers: FakeHandlers())
+  #expect(((response?["result"] as? [String: Any])?["allowed"] as? Bool) == true)
+}
