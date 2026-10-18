@@ -45,6 +45,29 @@ node -e "import('./client/src/index.mjs').then(async ({Client}) => {
 })"
 ```
 
+## Model-facing API
+
+`client/src/cua.mjs` mirrors the captured `cua` surface:
+
+```js
+import { Cua } from './client/src/cua.mjs';
+const cua = new Cua({ socketPath: '/tmp/codex-cu.sock' });
+const app = await cua.getApp('com.apple.finder');
+await app.getAXState();
+await app.click(42);
+await app.scroll([640, 480], 'down', 1);
+await app.pressKey('cmd+shift+g');
+await app.typeText('hello');
+```
+
+## Install
+
+```bash
+scripts/install.sh   # LaunchAgent + binary; then grant Accessibility/Screen Recording
+```
+
+See `docs/INSTALL.md`.
+
 ## Tests
 
 ```bash
