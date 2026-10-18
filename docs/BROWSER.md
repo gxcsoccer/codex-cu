@@ -78,7 +78,10 @@ Differences from native:
 - the diff header has no `for Window: "..."` part (there is no window);
 - display roles are CDP role names (`button`, `textbox`, `StaticText`) rather
   than localized macOS role descriptions;
-- `ID:`/`Secondary Actions:` are not available from CDP and are omitted.
+- `ID:`/`Secondary Actions:` are not available from CDP and are omitted;
+- element IDs are the stable DOM backend node id (`backendDOMNodeId`) so diffs can
+  report real removals across observations; `InlineTextBox` layout nodes are
+  filtered out.
 
 ## Playwright backend (closest to the original)
 

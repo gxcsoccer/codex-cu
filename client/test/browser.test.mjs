@@ -69,7 +69,7 @@ test('creates a tab and drives it', async () => {
   const tab = await browser.createTab('https://new.test/');
   assert.equal(tab.id, 'NEW');
 
-  assert.equal(await tab.getAXState(), '1 RootWebArea Example\n\t3 button Go');
+  assert.equal(await tab.getAXState(), '101 RootWebArea Example\n\t103 button Go');
   assert.deepEqual([...(await tab.getScreenshot())], [0x89, 0x50]);
 
   await tab.click([10, 20]);
@@ -77,7 +77,7 @@ test('creates a tab and drives it', async () => {
   assert.equal(clicks.length, 2);
   assert.equal(clicks[0].params.type, 'mousePressed');
 
-  await tab.click(3, { clickCount: 2 });
+  await tab.click(103, { clickCount: 2 });
   clicks = connection.calls.filter((call) => call.method === 'Input.dispatchMouseEvent');
   assert.deepEqual([clicks[2].params.x, clicks[2].params.y], [50, 25]);
   assert.equal(clicks[2].params.clickCount, 2);
@@ -85,27 +85,27 @@ test('creates a tab and drives it', async () => {
 
   await tab.typeText('hello');
   assert.equal(connection.calls.at(-1).method, 'Input.insertText');
-  await tab.typeText(3, 'world');
+  await tab.typeText(103, 'world');
   const insert = connection.calls.filter((call) => call.method === 'Input.insertText');
   assert.equal(insert.at(-1).params.text, 'world');
   assert.equal(connection.calls.filter((call) => call.method === 'DOM.focus').at(-1).params.backendNodeId, 103);
 
-  await tab.setValue(3, 'value');
+  await tab.setValue(103, 'value');
   const call = connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').at(-1);
   assert.equal(call.params.objectId, 'O1');
   assert.deepEqual(call.params.arguments, [{ value: 'value' }]);
 
-  await tab.selectText(3, 'val');
+  await tab.selectText(103, 'val');
   assert.equal(connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').length, 2);
 
-  await tab.pressKey(3, 'Enter');
+  await tab.pressKey(103, 'Enter');
   assert.equal(connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').length, 2);
-  await tab.pressKey(3, 'cmd+shift+a');
+  await tab.pressKey(103, 'cmd+shift+a');
   const chord = connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').at(-1);
   assert.equal(chord.params.modifiers, 12);
   assert.equal(chord.params.key, 'a');
   await assert.rejects(() => tab.pressKey('Hyper+Space'), /unknown modifier/);
-  await assert.rejects(() => tab.performSecondaryAction(3, 'Raise'), /not supported for browser tabs/);
+  await assert.rejects(() => tab.performSecondaryAction(103, 'Raise'), /not supported for browser tabs/);
 });
 
 test('element-index input requires a fresh AX state', async () => {
@@ -174,7 +174,7 @@ test('selectText forwards prefix and suffix to the page script', async () => {
   const browser = await provider.getBrowser();
   const tab = await browser.createTab('https://new.test/');
   await tab.getAXState();
-  await tab.selectText(1, 'hello', { prefix: 'say ', suffix: ' now', selectionType: 'cursor_after' });
+  await tab.selectText(101, 'hello', { prefix: 'say ', suffix: ' now', selectionType: 'cursor_after' });
   const call = connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').at(-1);
   assert.deepEqual(call.params.arguments, [{ value: 'hello' }, { value: 'cursor_after' }, { value: 'say ' }, { value: ' now' }]);
 });

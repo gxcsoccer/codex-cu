@@ -49,15 +49,15 @@ test('drives a browser through a real WebSocket CDP server', async () => {
     const ax = await tab.getAXState();
     assert.match(ax, /button Go/);
 
-    await tab.click(2);
+    await tab.click(102);
     const boxCalls = server.calls.filter((call) => call.method === 'DOM.getBoxModel');
     assert.equal(boxCalls.length, 1);
     assert.equal(boxCalls[0].params.backendNodeId, 102);
 
-    await tab.typeText(2, 'hello');
+    await tab.typeText(102, 'hello');
     assert.equal(server.calls.filter((call) => call.method === 'DOM.focus').length, 1);
 
-    await tab.setValue(2, 'v');
+    await tab.setValue(102, 'v');
     assert.equal(server.calls.filter((call) => call.method === 'Runtime.callFunctionOn').length, 1);
 
     const shot = await tab.getScreenshot();

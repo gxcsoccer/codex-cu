@@ -71,10 +71,13 @@ export function buildAXEntries(nodes) {
   for (const node of nodes) {
     if (!isEmitted(node)) continue;
     const role = node.role?.value ?? 'unknown';
+    if (role === 'InlineTextBox') continue;
     const { value, isNumber } = valueOf(node);
     const props = properties(node);
+    const numericNodeId = Number(node.nodeId);
     entries.push({
-      id: Number(node.nodeId),
+      // Stable identity across observations: the DOM node behind the AX node.
+      id: node.backendDOMNodeId ?? (Number.isFinite(numericNodeId) ? numericNodeId : node.nodeId),
       depth: depth(node),
       role,
       name: node.name?.value ?? '',

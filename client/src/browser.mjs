@@ -159,6 +159,11 @@ export class BrowserTab {
         .map((node) => [String(node.nodeId), node.backendDOMNodeId]),
     );
     const entries = buildAXEntries(nodes);
+    this.axIndex = new Map(
+      entries
+        .filter((entry) => entry.backendDOMNodeId !== undefined)
+        .map((entry) => [String(entry.id), entry.backendDOMNodeId]),
+    );
     if (!disableDiff && this.previousAX) {
       const text = renderAXDiff(this.previousAX, entries);
       this.previousAX = entries;

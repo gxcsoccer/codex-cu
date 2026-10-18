@@ -35,6 +35,7 @@ test('diffs removals, changes and additions', () => {
     node('4', 'heading', '1', { name: { value: 'Title 2' }, properties: [{ name: 'level', value: { value: 1 } }] }),
     node('5', 'button', '1', { name: { value: 'Go' } }),
     node('8', 'link', '1', { name: { value: 'Help' }, properties: [{ name: 'selected', value: { value: true } }, { name: 'url', value: { value: 'https://h.test/' } }] }),
+    node('9', 'link', '1', { name: { value: 'More' }, properties: [{ name: 'url', value: { value: 'https://m.test/' } }] }),
   ]);
   const diff = renderAXDiff(previous, current);
   assert.ok(diff.startsWith(BROWSER_DIFF_HEADER));
@@ -42,6 +43,7 @@ test('diffs removals, changes and additions', () => {
   assert.match(diff, /~\t4 heading Title 2/);
   assert.match(diff, /~\t5 button Go\n/);
   assert.match(diff, /\+\t8 link Help \(selected\), URL: https:\/\/h\.test\//);
+  assert.match(diff, /\+\t9 link More, URL: https:\/\/m\.test\//);
   assert.match(diff, /Selected:\n\t8 link Help/);
   assert.ok(diff.endsWith(SELECTED_NOTE));
 });
