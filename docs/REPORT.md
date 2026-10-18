@@ -141,9 +141,11 @@ wording (we match the captured text), and app-specific instruction texts.
 ## 9. Verification
 
 ```
-Swift unit tests        40   (framing, RPC, actions, observation, format parity)
+Swift unit tests        52   (framing, RPC, actions, observation, format parity,
+                             policy, screen lock, startApp, instructions)
 Node protocol/client    46   (framing, envelopes, errors, cua, browser, CDP)
-Integration (real socket) 4   (interop, concurrency, oversized frame, semantics)
+Integration (real socket) 5   (interop, concurrency, oversized frame, semantics,
+                             approvals; plus a startup-failure test)
 CI                      macos-15, green
 ```
 
