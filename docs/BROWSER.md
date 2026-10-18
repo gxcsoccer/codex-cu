@@ -39,7 +39,13 @@ const cua = new Cua({
 | `goto/back/forward/reload/close` | `Page.*` |
 | `getAXState()` | `Accessibility.getFullAXTree`, ignored nodes skipped |
 | `getScreenshot()` | `Page.captureScreenshot` (PNG bytes) |
-| `click([x,y])`, `scroll([x,y], dir, n)` | `Input.dispatchMouseEvent` |
+| `click(index)` / `click([x,y])` | AX `backendDOMNodeId` → `DOM.getBoxModel` center, then mouse events |
+| `scroll(index \| [x,y], dir, n)` | element center or coordinate + `mouseWheel` |
+| `typeText(index?, text)` | optional `DOM.focus` then `Input.insertText` |
+| `setValue(index, value)` | `Runtime.callFunctionOn` sets value + input/change events |
+| `selectText(index, text, {selectionType})` | `Runtime.callFunctionOn` + `setSelectionRange` |
+| `pressKey(index?, key)` | optional focus then key events |
+| `drag(from, to)` | mousePressed/moved/released |
 | `typeText(text)` | `Input.insertText` (layout independent) |
 | `pressKey(key)` | `Input.dispatchKeyEvent` for Enter/Tab/Escape/Backspace/arrows/single chars |
 | `markDeliverable()` | local flag |
@@ -55,12 +61,12 @@ tests with a fake CDP connection, and the WebSocket transport has its own tests
 
 ## Gaps vs the original
 
-- **Element-index clicks/typing are not implemented for tabs.** The original
-  resolves indices against its WASM AX tree; CDP nodes have ids but they are not
-  interchangeable with the original's indices. Passing `[x, y]` works; passing an
-  index throws an explicit error.
-- `drag`, `paste`, `setValue`, `selectText`, `performSecondaryAction` are not
-  implemented for browser tabs yet.
+- **Element indices come from the latest `getAXState()`**; stale indices raise an
+  explicit error instead of clicking the wrong node.
+- `performSecondaryAction` is not implemented for tabs (CDP has no direct
+  equivalent of an accessibility secondary action).
+- `paste` is implemented as focus + `Input.insertText`; it does not write the
+  system clipboard.
 - The original can also drive `iab` (in-app browser), extension-backed tabs and
   MCP apps; this provider only speaks CDP.
 - The browser documentation string is synthesized, not the original's

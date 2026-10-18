@@ -9,7 +9,7 @@
 | M5 packaging | launchd agent / `install.sh`, socket bootstrap auth, docs | **done** |
 | M6 audio | Start/StopAudioRecording parity | out of scope for now |
 | M7 cua surface | `cua.getApp/getAXState/click/scroll/...` wrapper matching the model-facing API | **done** |
-| M8 browser surface | CDP provider: listBrowsers/getBrowser/listTabs/getTab/createBrowserTab, Tab AX/screenshot/input | **partial** (element-index and Playwright-style locators missing) |
+| M8 browser surface | CDP provider: listBrowsers/getBrowser/listTabs/getTab/createBrowserTab, Tab AX/screenshot/input, element-index via backendDOMNodeId | **done (CDP)**; iab/extension backends and secondary actions missing |
 
 ## M2 design notes
 

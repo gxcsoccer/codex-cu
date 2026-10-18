@@ -21,6 +21,7 @@ export class BrowserTab {
     this.sessionId = sessionId;
     this.info = info;
     this.deliverable = false;
+    this.axIndex = new Map(); // AX nodeId -> backendDOMNodeId
   }
 
   async goto(url) {
@@ -43,7 +44,47 @@ export class BrowserTab {
   async getAXState() {
     await this.connection.send('Accessibility.enable', {}, this.sessionId);
     const { nodes } = await this.connection.send('Accessibility.getFullAXTree', {}, this.sessionId);
+    this.axIndex = new Map(
+      nodes
+        .filter((node) => node.backendDOMNodeId !== undefined)
+        .map((node) => [String(node.nodeId), node.backendDOMNodeId]),
+    );
     return formatAXTree(nodes);
+  }
+
+  backendFor(index) {
+    const backend = this.axIndex.get(String(index));
+    if (backend === undefined) {
+      throw new Error(`unknown element index ${index}; call getAXState() first`);
+    }
+    return backend;
+  }
+
+  async centerOf(index) {
+    await this.connection.send('DOM.enable', {}, this.sessionId);
+    const { model } = await this.connection.send('DOM.getBoxModel', { backendNodeId: this.backendFor(index) }, this.sessionId);
+    const quad = model.content;
+    return [(quad[0] + quad[2] + quad[4] + quad[6]) / 4, (quad[1] + quad[3] + quad[5] + quad[7]) / 4];
+  }
+
+  async focus(index) {
+    await this.connection.send('DOM.enable', {}, this.sessionId);
+    await this.connection.send('DOM.focus', { backendNodeId: this.backendFor(index) }, this.sessionId);
+  }
+
+  async resolveObject(index) {
+    await this.connection.send('DOM.enable', {}, this.sessionId);
+    const { object } = await this.connection.send('DOM.resolveNode', { backendNodeId: this.backendFor(index) }, this.sessionId);
+    return object.objectId;
+  }
+
+  async callOn(index, functionDeclaration, args = []) {
+    const objectId = await this.resolveObject(index);
+    const { result, exceptionDetails } = await this.connection.send('Runtime.callFunctionOn', {
+      objectId, functionDeclaration, arguments: args.map((value) => ({ value })), returnByValue: true,
+    }, this.sessionId);
+    if (exceptionDetails) throw new Error(exceptionDetails.text ?? 'Runtime.callFunctionOn failed');
+    return result?.value;
   }
 
   async getScreenshot() {
@@ -55,31 +96,54 @@ export class BrowserTab {
     return { state: await this.getAXState(), screenshot: await this.getScreenshot() };
   }
 
-  async click(target) {
-    if (!Array.isArray(target)) throw new Error('element-index clicks are not implemented for browser tabs; pass [x, y]');
-    const [x, y] = target;
+  async click(target, { mouseButton = 'left', clickCount = 1 } = {}) {
+    const [x, y] = Array.isArray(target) ? target : await this.centerOf(target);
     for (const type of ['mousePressed', 'mouseReleased']) {
       await this.connection.send('Input.dispatchMouseEvent', {
-        type, x, y, button: 'left', clickCount: 1,
+        type, x, y, button: mouseButton, clickCount,
       }, this.sessionId);
     }
   }
 
   async scroll(target, direction, distance = 1) {
-    if (!Array.isArray(target)) throw new Error('element-index scroll is not implemented for browser tabs; pass [x, y]');
+    const [x, y] = Array.isArray(target) ? target : await this.centerOf(target);
     const delta = Math.max(1, Number(distance)) * 120;
     await this.connection.send('Input.dispatchMouseEvent', {
-      type: 'mouseWheel', x: target[0], y: target[1],
+      type: 'mouseWheel', x, y,
       deltaX: direction === 'left' ? -delta : direction === 'right' ? delta : 0,
       deltaY: direction === 'up' ? -delta : delta,
     }, this.sessionId);
   }
 
-  async typeText(text) {
+  async typeText(index, text) {
+    if (typeof index !== 'number') { text = index; index = null; }
+    if (index !== null) await this.focus(index);
     await this.connection.send('Input.insertText', { text }, this.sessionId);
   }
 
-  async pressKey(key) {
+  async paste(index, text) {
+    return this.typeText(index, text);
+  }
+
+  async setValue(index, value) {
+    const changed = await this.callOn(index, 'function(value){ this.value = value; this.dispatchEvent(new Event("input", { bubbles: true })); this.dispatchEvent(new Event("change", { bubbles: true })); return true; }', [value]);
+    if (!changed) throw new Error(`could not set value on element ${index}`);
+  }
+
+  async selectText(index, text, { selectionType = 'text' } = {}) {
+    const ok = await this.callOn(index, 'function(text, type){ const start = this.value.indexOf(text); if (start < 0) return false; const end = start + text.length; const cursor = type === "cursor_before" ? start : end; this.focus(); this.setSelectionRange(type === "text" ? start : cursor, type === "text" ? end : cursor); return true; }', [text, selectionType]);
+    if (!ok) throw new Error(`text not found in element ${index}`);
+  }
+
+  async drag(from, to) {
+    await this.connection.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from[0], y: from[1], button: 'left', clickCount: 1 }, this.sessionId);
+    await this.connection.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: to[0], y: to[1], button: 'left' }, this.sessionId);
+    await this.connection.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: to[0], y: to[1], button: 'left' }, this.sessionId);
+  }
+
+  async pressKey(index, key) {
+    if (typeof index !== 'number') { key = index; index = null; }
+    if (index !== null) await this.focus(index);
     const spec = KEY_CODES[key] ?? (/^[a-zA-Z0-9]$/.test(key)
       ? { key, code: `Key${key.toUpperCase()}`, windowsVirtualKeyCode: key.toUpperCase().charCodeAt(0) }
       : null);

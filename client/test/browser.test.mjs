@@ -55,10 +55,13 @@ test('creates a tab and drives it', async () => {
     'Target.createTarget': { targetId: 'NEW' },
     'Target.attachToTarget': { sessionId: 'S2' },
     'Accessibility.getFullAXTree': { nodes: [
-      { nodeId: '1', ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Example' } },
-      { nodeId: '2', ignored: true, role: { value: 'generic' }, name: { value: '' } },
-      { nodeId: '3', ignored: false, role: { value: 'button' }, name: { value: 'Go' } },
+      { nodeId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Example' } },
+      { nodeId: '2', backendDOMNodeId: 102, ignored: true, role: { value: 'generic' }, name: { value: '' } },
+      { nodeId: '3', backendDOMNodeId: 103, ignored: false, role: { value: 'button' }, name: { value: 'Go' } },
     ] },
+    'DOM.getBoxModel': { model: { content: [0, 0, 100, 0, 100, 50, 0, 50] } },
+    'DOM.resolveNode': { object: { objectId: 'O1' } },
+    'Runtime.callFunctionOn': { result: { value: true } },
     'Page.captureScreenshot': { data: Buffer.from([0x89, 0x50]).toString('base64') },
   });
   const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
@@ -70,21 +73,40 @@ test('creates a tab and drives it', async () => {
   assert.deepEqual([...(await tab.getScreenshot())], [0x89, 0x50]);
 
   await tab.click([10, 20]);
-  const clicks = connection.calls.filter((call) => call.method === 'Input.dispatchMouseEvent');
+  let clicks = connection.calls.filter((call) => call.method === 'Input.dispatchMouseEvent');
   assert.equal(clicks.length, 2);
   assert.equal(clicks[0].params.type, 'mousePressed');
 
+  await tab.click(3, { clickCount: 2 });
+  clicks = connection.calls.filter((call) => call.method === 'Input.dispatchMouseEvent');
+  assert.deepEqual([clicks[2].params.x, clicks[2].params.y], [50, 25]);
+  assert.equal(clicks[2].params.clickCount, 2);
+  assert.equal(connection.calls.find((call) => call.method === 'DOM.getBoxModel').params.backendNodeId, 103);
+
   await tab.typeText('hello');
   assert.equal(connection.calls.at(-1).method, 'Input.insertText');
-  await tab.pressKey('Enter');
+  await tab.typeText(3, 'world');
+  const insert = connection.calls.filter((call) => call.method === 'Input.insertText');
+  assert.equal(insert.at(-1).params.text, 'world');
+  assert.equal(connection.calls.filter((call) => call.method === 'DOM.focus').at(-1).params.backendNodeId, 103);
+
+  await tab.setValue(3, 'value');
+  const call = connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').at(-1);
+  assert.equal(call.params.objectId, 'O1');
+  assert.deepEqual(call.params.arguments, [{ value: 'value' }]);
+
+  await tab.selectText(3, 'val');
+  assert.equal(connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').length, 2);
+
+  await tab.pressKey(3, 'Enter');
   assert.equal(connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').length, 2);
   await assert.rejects(() => tab.pressKey('Hyper+Space'), /unsupported browser key/);
 });
 
-test('browser tabs reject element-index input', async () => {
+test('element-index input requires a fresh AX state', async () => {
   const tab = new BrowserTab({ connection: new FakeConnection(), targetId: 'T', sessionId: 'S' });
-  await assert.rejects(() => tab.click(42), /element-index/);
-  await assert.rejects(() => tab.scroll(42, 'down'), /element-index/);
+  await assert.rejects(() => tab.click(42), /unknown element index/);
+  await assert.rejects(() => tab.scroll(42, 'down'), /unknown element index/);
 });
 
 test('cua exposes the browser surface through a provider', async () => {
