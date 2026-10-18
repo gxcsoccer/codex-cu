@@ -6,6 +6,7 @@ public final class DefaultHandlers: ServiceHandlers {
   private let store: SnapshotStore
   private let executor: ActionExecuting
   private let permissionsTrusted: () -> Bool
+  private let screenLocked: () -> Bool
   private let appExists: (String) throws -> Void
   private let pidForApp: (String) throws -> pid_t
   private let openApplication: (String) throws -> pid_t
@@ -21,6 +22,7 @@ public final class DefaultHandlers: ServiceHandlers {
               store: SnapshotStore = SnapshotStore(),
               executor: ActionExecuting = SystemActionExecutor(),
               permissionsTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
+              screenLocked: @escaping () -> Bool = { ScreenLock.isLocked() },
               appExists: @escaping (String) throws -> Void = { app in _ = try DefaultHandlers.resolveRunning(app) },
               pidForApp: @escaping (String) throws -> pid_t = { try DefaultHandlers.resolveRunning($0).processIdentifier },
               openApplication: @escaping (String) throws -> pid_t = { try DefaultHandlers.openApplication($0) },
@@ -35,6 +37,7 @@ public final class DefaultHandlers: ServiceHandlers {
     self.store = store
     self.executor = executor
     self.permissionsTrusted = permissionsTrusted
+    self.screenLocked = screenLocked
     self.appExists = appExists
     self.pidForApp = pidForApp
     self.openApplication = openApplication
@@ -107,6 +110,9 @@ public final class DefaultHandlers: ServiceHandlers {
   // MARK: - observation
 
   public func appState(_ app: String, disableDiff: Bool) throws -> [String: Any] {
+    guard !screenLocked() else {
+      throw ServiceError(.screenLocked, "the screen is locked")
+    }
     guard permissionsTrusted() else {
       throw ServiceError(.permissionsNotGranted,
                          "accessibility permission is required to read \(app)")
@@ -152,6 +158,9 @@ public final class DefaultHandlers: ServiceHandlers {
   // MARK: - actions
 
   public func performAction(_ app: String, action: [String: Any]) throws -> [String: Any] {
+    guard !screenLocked() else {
+      throw ServiceError(.screenLocked, "the screen is locked")
+    }
     try appExists(app)
     guard isAllowed(app) else {
       throw ServiceError(.appNotAllowed, "application is not approved: \(app)")

@@ -117,8 +117,8 @@ The original gates on:
 - screen-lock detection (`-10020`).
 
 The reimplementation keeps the first two gates, reads a configurable approval
-JSON (default allow — a documented deviation), and does not implement screen-lock
-detection. The socket is user-owned with no TCP listener.
+JSON (default allow — a documented deviation), and fails observation and actions
+while the screen is locked (`-10020`). The socket is user-owned with no TCP listener.
 
 ## 8. Fidelity assessment
 

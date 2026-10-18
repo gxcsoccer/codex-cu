@@ -29,6 +29,7 @@ response and are documented as such.
 | `AppPolicy` | approvals store | JSON allowlist, default allow (**deviation**) | `policyDenialBlocksActions` |
 | `PerformAction` | 9 action kinds | all 9 | `ActionTests` |
 | Audio recording | Start/Stop requests | **unsupported**, `-10004` | `audioRecordingIsExplicitlyUnsupported`, integration test |
+| Screen lock | `-10020` | observation/actions fail with `-10020` | `ScreenLockTests` |
 | `AppStart` errors | not found | `-10007` | integration test |
 | `AppGetSkyshot` without TCC | `-10009` | `-10009` | integration test |
 
