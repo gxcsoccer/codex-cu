@@ -134,7 +134,7 @@ public enum AXTree {
     let app = AXUIElementCreateApplication(pid)
     var window: CFTypeRef?
     if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &window) == .success,
-       let window {
+       let window, CFGetTypeID(window) == AXUIElementGetTypeID() {
       var title: CFTypeRef?
       if AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &title) == .success,
          let text = title as? String, !text.isEmpty {
