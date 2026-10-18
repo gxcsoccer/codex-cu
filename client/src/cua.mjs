@@ -97,8 +97,9 @@ export class App {
 }
 
 export class Cua {
-  constructor({ socketPath, client } = {}) {
+  constructor({ socketPath, client, browserProvider } = {}) {
     this.client = client ?? new Client({ socketPath });
+    this.browserProvider = browserProvider ?? null;
   }
 
   async connect() { await this.client.connect(); return this; }
@@ -121,7 +122,38 @@ export class Cua {
     return new App({ client: this.client, app: target });
   }
 
-  close() { this.client.close(); }
+  browserProviderOrThrow() {
+    if (!this.browserProvider) throw new Error('no browser provider configured; pass browserProvider to Cua');
+    return this.browserProvider;
+  }
+
+  async listBrowsers() {
+    return this.browserProviderOrThrow().list();
+  }
+
+  async getBrowser(options = {}) {
+    return this.browserProviderOrThrow().getBrowser(options);
+  }
+
+  async listTabs(options = {}) {
+    const browser = await this.getBrowser(options);
+    return browser.listTabs();
+  }
+
+  async getTab(reference, options = {}) {
+    const browser = await this.getBrowser(options);
+    return browser.getTab(reference);
+  }
+
+  async createBrowserTab(browserId, url, options = {}) {
+    const browser = await this.getBrowser({ id: browserId });
+    return browser.createTab(url, options);
+  }
+
+  close() {
+    this.client.close();
+    this.browserProvider?.close?.();
+  }
 }
 
 async function readScreenshot(result) {

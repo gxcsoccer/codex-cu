@@ -60,6 +60,24 @@ await app.pressKey('cmd+shift+g');
 await app.typeText('hello');
 ```
 
+### Browser surface
+
+```js
+import { Cua } from './client/src/cua.mjs';
+import { CdpBrowserProvider } from './client/src/browser.mjs';
+
+const cua = new Cua({
+  socketPath: '/tmp/codex-cu.sock',
+  browserProvider: new CdpBrowserProvider({ endpoint: 'http://127.0.0.1:9222' }),
+});
+const tab = await cua.getTab({ url: 'example.com' });
+await tab.goto('https://example.com');
+console.log(await tab.getAXState());
+```
+
+The provider talks CDP to a Chrome started with `--remote-debugging-port`. See
+`docs/BROWSER.md` for supported methods and gaps.
+
 ## Install
 
 ```bash
