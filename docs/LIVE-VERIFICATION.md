@@ -59,9 +59,16 @@ Chrome for Testing on port 9555:
 PASS ping: CodexComputerUseIPC-5
 PASS listApps: 11 apps
 PASS getAppState: Window header present
-PASS screenshot: 175490 bytes
+PASS screenshot: 246354 bytes
 PASS audio: 26924 bytes, 24000 Hz, 2 ch
 PASS browser: 4 AX lines
+```
+
+The AX text starts with the window, matching the original capture:
+
+```
+Window: "lang", App: 访达.
+0 标准窗口 lang, ID: FinderWindow, Secondary Actions: AXRaise
 ```
 
 The service calls `NSApplication.shared` at startup: without a WindowServer
