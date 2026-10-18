@@ -104,7 +104,8 @@ the permission is absent.
 ## Compatibility
 
 The wire format, request envelopes, action shapes, and error codes follow the
-observed protocol (documented in `docs/PROTOCOL.md`). Response field names for
+observed protocol (documented in `docs/PROTOCOL.md`). A per-feature matrix with
+implementation and test evidence is in `docs/CONFORMANCE.md`. Response field names for
 some requests are inferred; each inference is listed in `docs/COMPATIBILITY.md`
 with the test that pins it.
 

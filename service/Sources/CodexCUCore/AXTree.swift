@@ -126,7 +126,15 @@ public enum AXTree {
       }
     }
 
-    walk(app, depth: 0)
+    // The observed tree starts at the focused window (`0 标准窗口`), not at the
+    // application element. Fall back to the app when no window is focused.
+    var root = app
+    var focused: CFTypeRef?
+    if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused) == .success,
+       let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() {
+      root = focused as! AXUIElement
+    }
+    walk(root, depth: 0)
     return Snapshot(nodes: nodes, elements: elements)
   }
 
