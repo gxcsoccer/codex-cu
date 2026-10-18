@@ -297,3 +297,32 @@ test('AX includes the DOM id as ID:', async () => {
   const text = await tab.getAXState();
   assert.match(text, /103 button Go, ID: go/);
 });
+
+test('iframe accessibility trees are merged under the owner element', async () => {
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Accessibility.getFullAXTree': (params) => (params?.frameId === 'F1'
+      ? { nodes: [
+        { nodeId: '1', ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Frame' } },
+        { nodeId: '2', parentId: '1', backendDOMNodeId: 201, ignored: false, role: { value: 'button' }, name: { value: 'Inside' } },
+      ] }
+      : { nodes: [
+        { nodeId: '1', ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Page' } },
+        { nodeId: '5', parentId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'Iframe' }, name: { value: '' } },
+      ] }),
+    'Page.getFrameTree': { frameTree: { frame: { id: 'ROOT' }, childFrames: [{ frame: { id: 'F1', parentId: 'ROOT' } }] } },
+    'DOM.getFrameOwner': { backendNodeId: 101 },
+    'DOM.getBoxModel': { model: { content: [0, 0, 10, 0, 10, 10, 0, 10] } },
+    'DOM.enable': {},
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  const text = await tab.getAXState();
+  assert.match(text, /\t\t1500000 RootWebArea Frame/);
+  assert.match(text, /\t\t\t1000201 button Inside/);
+
+  await tab.click(1000201);
+  assert.equal(connection.calls.filter((call) => call.method === 'DOM.getBoxModel').at(-1).params.backendNodeId, 201);
+});

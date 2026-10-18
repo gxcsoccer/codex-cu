@@ -40,7 +40,7 @@ deviation written down and tested where the environment allows.
 | Screenshot | PASS (175,490-byte PNG) |
 | Audio capture | PASS (24 kHz stereo WAV, 26,924 bytes) |
 | Browser (CDP) | PASS (Chrome for Testing 149, real CDP WebSocket) |
-| Browser (Playwright) | PASS (live test: getByRole click, AX text, screenshot) |
+| Browser (Playwright) | PASS (live test: getByRole click, AX text, screenshot, iframe AX + index click, clipboard paste) |
 
 The system Chrome is an `aha-runtime` stub, so browser verification uses the
 Playwright-cached **Chrome for Testing**; the service itself is unchanged.
@@ -52,7 +52,6 @@ Playwright-cached **Chrome for Testing**; the service itself is unchanged.
 | Item | Reason |
 |---|---|
 | `iab` / extension / MCP-app browser backends | require the original extension and native-messaging host |
-| iframe content in browser AX | main-frame tree only; `frameLocator` covers interaction on the Playwright backend |
 | Audio live capture verification | now PASS on this machine (`live-check --audio`) |
 | Windows-specific `list_windows`/`get_window` | macOS client exposes no window-scoped bindings either |
 | Exact response schemas for `AppGetSkyshot`/`PerformAction` beyond consumed fields | not observable without an entitled peer |

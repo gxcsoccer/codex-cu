@@ -63,3 +63,22 @@ test('paste uses the clipboard on a secure origin', { skip: !endpoint }, async (
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('iframe content is visible in AX and clickable by index', { skip: !endpoint }, async () => {
+  const provider = new PlaywrightBrowserProvider({ endpoint });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('data:text/html,<title>Frames</title><iframe srcdoc="<button id=in>Inside</button>"></iframe>');
+  try {
+    const frame = tab.page.frames()[1];
+    await frame.evaluate(() => document.getElementById('in').addEventListener('click', (event) => { event.target.textContent = 'Hit'; }));
+    const axes = await tab.getAXState();
+    assert.match(axes, /button Inside/);
+    const line = axes.split('\n').find((candidate) => candidate.includes('button Inside'));
+    const index = Number(line.trim().split(' ')[0]);
+    await tab.click(index);
+    assert.equal(await frame.locator('#in').textContent(), 'Hit');
+  } finally {
+    await tab.close();
+    await provider.close();
+  }
+});

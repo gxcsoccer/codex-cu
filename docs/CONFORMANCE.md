@@ -58,7 +58,7 @@ Action semantics:
 | `listTabs` / `getTab` | yes | `Target.getTargets` / attach | `browser.test.mjs`, `cdp-live.test.mjs` |
 | `createBrowserTab` | yes | `Target.createTarget` | same |
 | `goto/back/forward/reload/close` | yes | `Page.*` | `cdp-live.test.mjs` |
-| AX state | WASM AX, native tree/diff layout | CDP AX rendered with the same layout (roles/states/fields, diff header, removed ranges, Selected block) | `ax-format.test.mjs`, `browser.test.mjs` |
+| AX state | WASM AX, per-frame merge, native tree/diff layout | CDP AX merged under iframe owners, rendered with the same layout (roles/states/fields, diff header, removed ranges, Selected block) | `ax-format.test.mjs`, `browser.test.mjs`, `browser-playwright.test.mjs` |
 | element-index click | via AX indices | stable DOM backend id + `DOM.getBoxModel` (verified live with Playwright) | `cdp-live.test.mjs`, `browser-playwright.test.mjs` |
 | typeText/pressKey/setValue/selectText | yes | focus + input / `Runtime.callFunctionOn` | same |
 | screenshot | yes | `Page.captureScreenshot` | same |

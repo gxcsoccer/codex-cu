@@ -86,9 +86,14 @@ Differences from native:
 
 ## Frames
 
-`getAXState()` reads the **main frame** only. The original merges per-frame trees
-and its own docs warn that frame ownership is omitted; use the Playwright
-backend's `tab.playwright.frameLocator(...)` for iframe content and interaction.
+`getAXState()` merges each frame's accessibility tree under its owner `<iframe>`
+element (`Page.getFrameTree` + `Accessibility.getFullAXTree({frameId})` +
+`DOM.getFrameOwner`), matching the original's per-frame merge. Frame nodes get a
+per-frame display-ID offset (base + backend id), so IDs stay stable and never
+collide with page ids; element-index clicks work inside iframes because CDP
+frame box models are page-relative (verified live). Frame ownership is still not
+annotated in the text, same as the original; `frameLocator` remains available on
+the Playwright backend.
 
 ## Playwright backend (closest to the original)
 

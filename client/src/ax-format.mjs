@@ -78,7 +78,7 @@ export function buildAXEntries(nodes, { domIds = new Map() } = {}) {
     const numericNodeId = Number(node.nodeId);
     entries.push({
       // Stable identity across observations: the DOM node behind the AX node.
-      id: node.backendDOMNodeId ?? (Number.isFinite(numericNodeId) ? numericNodeId : node.nodeId),
+      id: node.displayId ?? node.backendDOMNodeId ?? (Number.isFinite(numericNodeId) ? numericNodeId : node.nodeId),
       depth: depth(node),
       role,
       name: node.name?.value ?? '',

@@ -153,7 +153,8 @@ export class BrowserTab {
 
   async getAXState({ disableDiff = false } = {}) {
     await this.connection.send('Accessibility.enable', {}, this.sessionId);
-    const { nodes } = await this.connection.send('Accessibility.getFullAXTree', {}, this.sessionId);
+    const { nodes: pageNodes } = await this.connection.send('Accessibility.getFullAXTree', {}, this.sessionId);
+    const nodes = await this.mergeFrameNodes(pageNodes);
     this.axIndex = new Map(
       nodes
         .filter((node) => node.backendDOMNodeId !== undefined)
@@ -173,6 +174,61 @@ export class BrowserTab {
     }
     this.previousAX = entries;
     return formatEntries(entries);
+  }
+
+  /**
+   * Merges per-frame accessibility trees into the page tree, nesting each frame
+   * under its owner element. Stable display ids for frame nodes are offset per
+   * frame so they never collide with page ids; the backend id remains the action
+   * handle (CDP dispatches frame input through the page session).
+   */
+  async mergeFrameNodes(pageNodes) {
+    let frameTree;
+    try {
+      ({ frameTree } = await this.connection.send('Page.getFrameTree', {}, this.sessionId));
+    } catch {
+      return pageNodes;
+    }
+    if (!frameTree?.childFrames) return pageNodes;
+    const frames = [];
+    const collect = (node) => {
+      for (const child of node.childFrames ?? []) { frames.push(child); collect(child); }
+    };
+    collect(frameTree);
+
+    const merged = pageNodes.map((node) => ({ ...node }));
+    const byFrame = new Map(); // frameId -> { prefix, nodes }
+    let index = 0;
+    for (const child of frames) {
+      index += 1;
+      const frame = child.frame;
+      let frameNodes;
+      try {
+        ({ nodes: frameNodes } = await this.connection.send('Accessibility.getFullAXTree', { frameId: frame.id }, this.sessionId));
+      } catch { continue; }
+      if (!frameNodes?.length) continue;
+      let ownerBackend;
+      try {
+        ({ backendNodeId: ownerBackend } = await this.connection.send('DOM.getFrameOwner', { frameId: frame.id }, this.sessionId));
+      } catch { continue; }
+
+      const parent = frame.parentId ? byFrame.get(frame.parentId) : null;
+      const pool = parent ? parent.nodes : merged;
+      const owner = pool.find((node) => node.backendDOMNodeId === ownerBackend);
+      if (!owner) continue;
+      const ownerId = parent ? `${parent.prefix}${owner.nodeId}` : String(owner.nodeId);
+      const prefix = `f${index}:`;
+      const base = index * 1_000_000;
+      const nodes = frameNodes.map((node, position) => ({
+        ...node,
+        nodeId: `${prefix}${node.nodeId}`,
+        parentId: node.parentId ? `${prefix}${node.parentId}` : ownerId,
+        displayId: base + (node.backendDOMNodeId ?? 500_000 + position),
+      }));
+      merged.push(...nodes);
+      byFrame.set(frame.id, { prefix, nodes });
+    }
+    return merged;
   }
 
   /** backendNodeId -> DOM id, used for the `ID:` field. */
