@@ -60,6 +60,14 @@ private func handlers(approvals: URL?) -> DefaultHandlers {
   #expect(allowedPolicy["decision"] as? String == "alwaysAllow")
 }
 
+@Test func persistentApprovalEntriesMayCarryDisplayName() throws {
+  let url = try writeApprovals(#"{"persistentApprovals":{"com.test.app":{"displayName":"Test","decision":"alwaysDeny"}}}"#)
+  defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+  let policy = try handlers(approvals: url).policy("com.test.app")
+  #expect(policy["allowed"] as? Bool == false)
+  #expect(policy["decision"] as? String == "alwaysDeny")
+}
+
 @Test func allowAllChatsOverridesEntries() throws {
   let url = try writeApprovals(#"{"allowAllChats":true,"persistentApprovals":{"com.test.app":"alwaysDeny"}}"#)
   defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

@@ -408,10 +408,17 @@ public final class DefaultHandlers: ServiceHandlers {
     }
     if (json["allowAllChats"] as? Bool) == true { return Self.allowDecision }
 
-    if let persistent = json["persistentApprovals"] as? [String: String],
-       let raw = persistent[app] {
-      if raw == "alwaysDeny" { return Self.denyDecision }
-      if raw == "alwaysAllow" { return Self.allowDecision }
+    if let persistent = json["persistentApprovals"] as? [String: Any] {
+      // string form: {"id": "alwaysDeny"}
+      if let raw = persistent[app] as? String {
+        if raw == "alwaysDeny" { return Self.denyDecision }
+        if raw == "alwaysAllow" { return Self.allowDecision }
+      }
+      // struct form: {"id": {"displayName": "...", "decision": "alwaysDeny"}}
+      if let entry = persistent[app] as? [String: Any], let raw = entry["decision"] as? String {
+        if raw == "alwaysDeny" { return Self.denyDecision }
+        if raw == "alwaysAllow" { return Self.allowDecision }
+      }
     }
     if let apps = json["apps"] as? [String: Any] {
       if let entry = apps[app] as? [String: Any], let allowed = entry["allowed"] as? Bool {
