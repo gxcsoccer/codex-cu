@@ -75,8 +75,10 @@ public enum RPC {
         throw ServiceError(.couldNotGetRequestData, "action is required")
       }
       return try handlers.performAction(app, action: action)
-    case "ComputerUseIPCStartAudioRecordingRequest", "ComputerUseIPCStopAudioRecordingRequest":
-      throw ServiceError(.unhandledEvent, "audio recording is not implemented")
+    case "ComputerUseIPCStartAudioRecordingRequest":
+      return try handlers.startAudioRecording(request)
+    case "ComputerUseIPCStopAudioRecordingRequest":
+      return try handlers.stopAudioRecording()
     default:
       throw ServiceError(.couldNotResolveRequestType, "unknown requestType: \(requestType)")
     }
@@ -100,4 +102,6 @@ public protocol ServiceHandlers {
   func appState(_ app: String, disableDiff: Bool) throws -> [String: Any]
   func policy(_ app: String) throws -> [String: Any]
   func performAction(_ app: String, action: [String: Any]) throws -> [String: Any]
+  func startAudioRecording(_ request: [String: Any]) throws -> [String: Any]
+  func stopAudioRecording() throws -> [String: Any]
 }

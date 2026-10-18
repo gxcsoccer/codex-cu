@@ -150,6 +150,14 @@ export class Client {
     return this.request(REQUEST_TYPES.appGetSkyshot, request);
   }
   getAppPolicy(app) { return this.request(REQUEST_TYPES.appPolicy, { app }); }
+
+  startAudioRecording({ maxDurationMilliseconds } = {}) {
+    const request = {};
+    if (maxDurationMilliseconds !== undefined) request.maxDurationMilliseconds = maxDurationMilliseconds;
+    return this.request(REQUEST_TYPES.startAudio, request);
+  }
+
+  stopAudioRecording() { return this.request(REQUEST_TYPES.stopAudio, {}); }
   performAction(app, action) { return this.request(REQUEST_TYPES.performAction, { app, action }); }
 
   click({ app, elementIndex, x, y, clickCount = 1, mouseButton: button = 'left', key, duration }) {

@@ -103,3 +103,26 @@ test('window-scoped bindings are rejected explicitly', async () => {
     await mock.close();
   }
 });
+
+test('stopAudioRecording returns filepath, bytes and a data URL', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cua-audio-'));
+  const file = path.join(directory, 'a.wav');
+  fs.writeFileSync(file, Buffer.from([0x52, 0x49, 0x46, 0x46]));
+  const mock = await startMockServer((message) => {
+    if (message.method === 'ping') return { result: { serverApiVersion: 'CodexComputerUseIPC-5' } };
+    if (message.params?.requestType === 'ComputerUseIPCStartAudioRecordingRequest') return { result: {} };
+    return { result: { url: pathToFileURL(file).href } };
+  });
+  const cua = new Cua({ socketPath: mock.socketPath });
+  try {
+    await cua.startAudioRecording({ maxDurationMilliseconds: 100 });
+    const audio = await cua.stopAudioRecording();
+    assert.equal(audio.filepath, file);
+    assert.deepEqual([...audio.bytes], [0x52, 0x49, 0x46, 0x46]);
+    assert.match(audio.data_url, /^data:audio\/wav;base64,/);
+  } finally {
+    cua.close();
+    await mock.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

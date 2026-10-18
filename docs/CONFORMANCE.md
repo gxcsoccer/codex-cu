@@ -28,7 +28,7 @@ response and are documented as such.
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
 | `AppPolicy` | approvals store | JSON allowlist (`--approvals`); explicit false -> `-10006`; missing/malformed/absent entry -> allow (**fail-open deviation**) | `PolicyTests`, integration test |
 | `PerformAction` | 9 action kinds | all 9 | `ActionTests` |
-| Audio recording | Start/Stop requests | **unsupported**, `-10004` | `audioRecordingIsExplicitlyUnsupported`, integration test |
+| Audio recording | Start/Stop, 100…300000 ms, WAV URL | protocol + lifecycle implemented with an injectable recorder; ScreenCaptureKit recorder pending; no recorder -> `-10004` | `AudioTests`, client tests |
 | Screen lock | `-10020` | observation/actions fail with `-10020` | `ScreenLockTests` |
 | `AppStart` errors | not found | `-10007` | integration test |
 | Ambiguous app match | `-10018` | `-10018` via `selectRunning` | `PolicyTests` |

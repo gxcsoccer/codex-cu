@@ -17,6 +17,9 @@ public final class DefaultHandlers: ServiceHandlers {
   private let screenshotter: ScreenshotCapturing?
   private let screenshotStore: ScreenshotStore
   private let instructions: [String: String]
+  private let audioRecorder: AudioRecording?
+  private var audioActive = false
+  private let audioLock = NSLock()
 
   public init(approvalsURL: URL? = nil,
               store: SnapshotStore = SnapshotStore(),
@@ -32,7 +35,8 @@ public final class DefaultHandlers: ServiceHandlers {
               snapshotProvider: @escaping (pid_t) throws -> AXTree.Snapshot = { try AXTree.snapshot(pid: $0) },
               screenshotter: ScreenshotCapturing? = SystemScreenshotCapturer(),
               screenshotStore: ScreenshotStore = ScreenshotStore(),
-              instructions: [String: String] = [:]) {
+              instructions: [String: String] = [:],
+              audioRecorder: AudioRecording? = nil) {
     self.approvalsURL = approvalsURL
     self.store = store
     self.executor = executor
@@ -48,6 +52,7 @@ public final class DefaultHandlers: ServiceHandlers {
     self.screenshotter = screenshotter
     self.screenshotStore = screenshotStore
     self.instructions = instructions
+    self.audioRecorder = audioRecorder
   }
 
   // MARK: - inventory / lifecycle
@@ -156,6 +161,37 @@ public final class DefaultHandlers: ServiceHandlers {
   }
 
   // MARK: - actions
+
+  // MARK: - audio
+
+  public func startAudioRecording(_ request: [String: Any]) throws -> [String: Any] {
+    guard let audioRecorder else {
+      throw ServiceError(.unhandledEvent, "audio recording is not implemented")
+    }
+    let duration = try AudioLimits.validate(request["maxDurationMilliseconds"])
+    audioLock.lock()
+    defer { audioLock.unlock() }
+    guard !audioActive else {
+      throw ServiceError(.unhandledEvent, "audio recording is already active")
+    }
+    try audioRecorder.start(maxDurationMilliseconds: duration)
+    audioActive = true
+    return [:]
+  }
+
+  public func stopAudioRecording() throws -> [String: Any] {
+    guard let audioRecorder else {
+      throw ServiceError(.unhandledEvent, "audio recording is not implemented")
+    }
+    audioLock.lock()
+    defer { audioLock.unlock() }
+    guard audioActive else {
+      throw ServiceError(.unhandledEvent, "audio recording is not active")
+    }
+    let url = try audioRecorder.stop()
+    audioActive = false
+    return ["url": url.absoluteString]
+  }
 
   public func performAction(_ app: String, action: [String: Any]) throws -> [String: Any] {
     guard !screenLocked() else {

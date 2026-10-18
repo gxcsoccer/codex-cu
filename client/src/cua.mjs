@@ -127,6 +127,24 @@ export class Cua {
     return this.browserProvider;
   }
 
+  async startAudioRecording(options = {}) {
+    return this.client.startAudioRecording(options);
+  }
+
+  async stopAudioRecording() {
+    const { url } = await this.client.stopAudioRecording();
+    if (typeof url !== 'string' || !url.startsWith('file:')) {
+      throw new Error('computer-use service did not return a local computer audio URL');
+    }
+    const filepath = fileURLToPath(url);
+    const bytes = new Uint8Array(await readFile(filepath));
+    return {
+      filepath,
+      bytes,
+      data_url: `data:audio/wav;base64,${Buffer.from(bytes).toString('base64')}`,
+    };
+  }
+
   async listBrowsers() {
     return this.browserProviderOrThrow().list();
   }

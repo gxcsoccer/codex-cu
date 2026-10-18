@@ -104,3 +104,22 @@ test('notifications without an id are ignored', async () => {
     await mock.close();
   }
 });
+
+test('audio requests carry the duration and stop returns the service URL', async () => {
+  const mock = await startMockServer((message) => {
+    if (message.method === 'ping') return { result: { serverApiVersion: API_VERSION } };
+    if (message.params?.requestType === 'ComputerUseIPCStartAudioRecordingRequest') return { result: {} };
+    return { result: { url: 'file:///tmp/a.wav' } };
+  });
+  const client = new Client({ socketPath: mock.socketPath });
+  try {
+    await client.startAudioRecording({ maxDurationMilliseconds: 2000 });
+    assert.deepEqual(mock.requests[0].params.request, { maxDurationMilliseconds: 2000 });
+    const stopped = await client.stopAudioRecording();
+    assert.equal(stopped.url, 'file:///tmp/a.wav');
+    assert.deepEqual(mock.requests[1].params.request, {});
+  } finally {
+    client.close();
+    await mock.close();
+  }
+});

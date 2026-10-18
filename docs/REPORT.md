@@ -131,7 +131,7 @@ while the screen is locked (`-10020`). The socket is user-owned with no TCP list
 | Screenshot shape (temp PNG → `file://`) | matched; live capture requires TCC |
 | Browser API surface | compatible; backend differs (CDP vs Playwright) |
 | cua surface | matched to the captured TypeScript definitions |
-| Audio recording | **not implemented** |
+| Audio recording | protocol + lifecycle implemented; capture backend pending |
 | Window-scoped bindings | **not implemented** |
 
 Inferred items (documented in `PROTOCOL.md`): exact response schemas for

@@ -12,6 +12,8 @@ struct FakeHandlers: ServiceHandlers {
   func performAction(_ app: String, action: [String: Any]) throws -> [String: Any] {
     throw ServiceError(.permissionsNotGranted, "denied")
   }
+  func startAudioRecording(_ request: [String: Any]) throws -> [String: Any] { [:] }
+  func stopAudioRecording() throws -> [String: Any] { ["url": "file:///tmp/a.wav"] }
 }
 
 @Test func pingEchoesVersion() {
@@ -92,14 +94,12 @@ struct FakeHandlers: ServiceHandlers {
   #expect(response?["result"] != nil)
 }
 
-@Test func audioRecordingIsExplicitlyUnsupported() {
-  for requestType in ["ComputerUseIPCStartAudioRecordingRequest", "ComputerUseIPCStopAudioRecordingRequest"] {
-    let response = RPC.handle([
-      "jsonrpc": "2.0", "id": 11, "method": "request",
-      "params": ["clientApiVersion": apiVersion, "requestType": requestType, "request": [:]],
-    ], handlers: FakeHandlers())
-    #expect((response?["error"] as? [String: Any])?["code"] as? Int == ServiceErrorCode.unhandledEvent.rawValue)
-  }
+@Test func audioRequestsAreDispatched() {
+  let response = RPC.handle([
+    "jsonrpc": "2.0", "id": 11, "method": "request",
+    "params": ["clientApiVersion": apiVersion, "requestType": "ComputerUseIPCStopAudioRecordingRequest", "request": [:]],
+  ], handlers: FakeHandlers())
+  #expect(((response?["result"] as? [String: Any])?["url"] as? String) == "file:///tmp/a.wav")
 }
 
 @Test func policyRequestIsDispatched() {
