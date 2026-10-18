@@ -90,6 +90,10 @@ element's frame center. `type` posts Unicode keyboard events (layout
 independent); `pressKey` parses `cmd+shift+g`-style chords into flags plus a
 virtual keycode.
 
+`AppStart` waits briefly (default 5 s) for the first accessibility window after
+launch, since acting on a windowless app is the most common first-action failure;
+without Accessibility there is nothing to inspect and it returns immediately.
+
 ## 6. Browser stack
 
 The original uses Playwright, a WASM accessibility layer and a Chrome extension.

@@ -138,6 +138,16 @@ public enum AXTree {
     return Snapshot(nodes: nodes, elements: elements)
   }
 
+  /// Number of AX windows for the process. Returns -1 when AX is unavailable.
+  public static func windowCount(pid: pid_t) -> Int {
+    guard AXIsProcessTrusted() else { return -1 }
+    let app = AXUIElementCreateApplication(pid)
+    var windows: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
+          let array = windows as? [AXUIElement] else { return 0 }
+    return array.count
+  }
+
   public static func frontWindowTitle(pid: pid_t) -> String {
     let app = AXUIElementCreateApplication(pid)
     var window: CFTypeRef?

@@ -8,6 +8,10 @@ public final class DefaultHandlers: ServiceHandlers {
   private let permissionsTrusted: () -> Bool
   private let appExists: (String) throws -> Void
   private let pidForApp: (String) throws -> pid_t
+  private let openApplication: (String) throws -> pid_t
+  private let windowCount: (pid_t) -> Int
+  private let wait: (TimeInterval) -> Void
+  private let launchTimeout: TimeInterval
   private let snapshotProvider: (pid_t) throws -> AXTree.Snapshot
   private let screenshotter: ScreenshotCapturing?
   private let screenshotStore: ScreenshotStore
@@ -19,6 +23,10 @@ public final class DefaultHandlers: ServiceHandlers {
               permissionsTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
               appExists: @escaping (String) throws -> Void = { app in _ = try DefaultHandlers.resolveRunning(app) },
               pidForApp: @escaping (String) throws -> pid_t = { try DefaultHandlers.resolveRunning($0).processIdentifier },
+              openApplication: @escaping (String) throws -> pid_t = { try DefaultHandlers.openApplication($0) },
+              windowCount: @escaping (pid_t) -> Int = { AXTree.windowCount(pid: $0) },
+              wait: @escaping (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) },
+              launchTimeout: TimeInterval = 5,
               snapshotProvider: @escaping (pid_t) throws -> AXTree.Snapshot = { try AXTree.snapshot(pid: $0) },
               screenshotter: ScreenshotCapturing? = SystemScreenshotCapturer(),
               screenshotStore: ScreenshotStore = ScreenshotStore(),
@@ -29,6 +37,10 @@ public final class DefaultHandlers: ServiceHandlers {
     self.permissionsTrusted = permissionsTrusted
     self.appExists = appExists
     self.pidForApp = pidForApp
+    self.openApplication = openApplication
+    self.windowCount = windowCount
+    self.wait = wait
+    self.launchTimeout = launchTimeout
     self.snapshotProvider = snapshotProvider
     self.screenshotter = screenshotter
     self.screenshotStore = screenshotStore
@@ -54,8 +66,27 @@ public final class DefaultHandlers: ServiceHandlers {
   public func startApp(_ app: String) throws -> [String: Any] {
     if let running = try? Self.resolveRunning(app) {
       running.activate(options: [])
+      waitForWindow(pid: running.processIdentifier)
       return ["app": app, "pid": Int(running.processIdentifier)]
     }
+    let pid = try openApplication(app)
+    waitForWindow(pid: pid)
+    return ["app": app, "pid": Int(pid)]
+  }
+
+  /// Best-effort: an app that is launched but has no window yet is a common
+  /// source of first-action failures, so wait briefly for one. Without the
+  /// Accessibility permission there is nothing to inspect and we return at once.
+  private func waitForWindow(pid: pid_t) {
+    guard permissionsTrusted() else { return }
+    let attempts = max(1, Int((launchTimeout / 0.1).rounded(.up)))
+    for _ in 0..<attempts {
+      if windowCount(pid) > 0 { return }
+      wait(0.1)
+    }
+  }
+
+  public static func openApplication(_ app: String) throws -> pid_t {
     guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app) else {
       throw ServiceError(.runningApplicationNotFound, "application not found: \(app)")
     }
@@ -70,7 +101,7 @@ public final class DefaultHandlers: ServiceHandlers {
     guard let pid = launchedPid else {
       throw ServiceError(.runningApplicationNotFound, "application did not launch: \(app)")
     }
-    return ["app": app, "pid": Int(pid)]
+    return pid
   }
 
   // MARK: - observation

@@ -22,7 +22,7 @@ response and are documented as such.
 | Request | Original | This repo | Evidence |
 |---|---|---|---|
 | `ListApps` | yes | yes | integration test |
-| `AppStart` | yes | yes (NSWorkspace) | `Handlers.startApp` |
+| `AppStart` | yes | yes (NSWorkspace + wait for the first AX window) | `StartAppTests` |
 | `AppGetSkyshot` | AX text + screenshot | yes; focused-window root, localized roles | `FormatParityTests`, `ObservationTests` |
 | Screenshot | SCK → temp PNG → `file://` | same shape; old file removed | `ObservationTests` |
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
