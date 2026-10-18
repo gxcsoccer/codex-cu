@@ -5,9 +5,9 @@ stack behind Codex / ChatGPT): a local service that reads the accessibility tree
 synthesizes input events, captures screenshots, and speaks the same JSON-RPC
 protocol as the original.
 
-> Status: protocol, app inventory, AX tree text, input actions, screenshots and
-> tree diffing are implemented and tested; the parity harness against Codex is
-> next. See `docs/COMPATIBILITY.md`.
+> Status: protocol, AX observation/actions, screenshots, diffs, audio recording,
+> the `cua` surface and a CDP browser backend are implemented and tested.
+> Deviations, blocked items and the completion checklist are in `docs/SCOPE.md`.
 
 ## Read this first
 

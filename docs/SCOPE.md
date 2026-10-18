@@ -1,0 +1,61 @@
+# Scope: what "1:1" means here
+
+The original is closed source. A literal source-identical copy is not possible;
+this repo aims at **protocol- and behavior-compatible replication**, with every
+deviation written down and tested where the environment allows.
+
+## Replicated (with evidence)
+
+| Area | Fidelity |
+|---|---|
+| Unix-socket transport, 4-byte LE framing, 8 MiB cap | 1:1 |
+| JSON-RPC `ping`/`request`, version handshake | 1:1 |
+| Seven request types, envelopes, `requestType` dispatch | 1:1 |
+| Action payload encoding (`_0`, string element IDs, mouse buttons) | 1:1 |
+| 21 error codes | identical taxonomy (cross-language test) |
+| AX text format (roles, states, fields, diff, Selected block) | matched to captured output |
+| Nine native actions, AX-first with CGEvent fallback | implemented, faked-executor tested |
+| Screenshot shape (`file://` PNG, temp lifecycle) | matched; live needs TCC |
+| `cua` surface (native + browser + audio) | matched to captured TypeScript types |
+| Audio protocol/limits/WAV URL | matched from `@oai/sky` and tested |
+| LaunchAgent packaging, approvals, instructions | implemented |
+
+## Deliberate deviations
+
+| Deviation | Why |
+|---|---|
+| Browser backend uses **CDP** instead of Playwright + WASM AX + Chrome extension | no extension/host to reuse; CDP is the closest available transport |
+| Browser input is index/coordinate/CSS-locator based | Playwright pseudo-selectors and auto-waiting are a large runtime we do not ship |
+| `performSecondaryAction` on browser tabs throws | CDP has no accessibility secondary-action equivalent |
+| Browser `paste` uses `Input.insertText` | clipboard writes need a trusted gesture and permissions; documented, not faked |
+| Approvals default to allow; malformed files fail open | the original's first-use prompt UI is not reproduced |
+| Diff header/wording | copied from captured output, but not proven byte-identical for every app |
+| `appSpecificInstructions` shipped empty by default | original texts are not recoverable; `--instructions` supplies them |
+
+## Blocked by this machine
+
+| Item | Blocker |
+|---|---|
+| Live native observation/actions | CLI process has neither Accessibility nor Screen Recording (`AXIsProcessTrusted() == false`) |
+| Live audio capture | same TCC denial (verified `-10009` path) |
+| Real-browser smoke | the installed Chrome is an `aha-runtime` stub without a browser WebSocket |
+
+`scripts/live-check.mjs` and `docs/LIVE-VERIFICATION.md` exist so these can be
+verified on a normal desktop session without changing code.
+
+## Not attempted
+
+| Item | Reason |
+|---|---|
+| `iab` / extension / MCP-app browser backends | require the original extension and native-messaging host |
+| Audio live capture verification | blocked by TCC here; implementation is present |
+| Windows-specific `list_windows`/`get_window` | macOS client exposes no window-scoped bindings either |
+| Exact response schemas for `AppGetSkyshot`/`PerformAction` beyond consumed fields | not observable without an entitled peer |
+
+## How to judge completion
+
+1. `scripts/verify.sh` passes (build + 65 Swift tests + 70 Node tests).
+2. `docs/CONFORMANCE.md` rows have implementation + tests.
+3. Docs state each deviation and each blocked item.
+4. On a TCC-enabled machine, `scripts/live-check.mjs` reports PASS for native,
+   screenshot, audio and browser checks.

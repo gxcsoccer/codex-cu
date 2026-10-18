@@ -130,6 +130,7 @@ while the screen is locked (`-10020`). The socket is user-owned with no TCP list
 | Native action semantics | implemented; **not live-verified** (TCC) |
 | Screenshot shape (temp PNG → `file://`) | matched; live capture requires TCC |
 | Browser API surface | compatible; backend differs (CDP vs Playwright) |
+| Browser extras | locators (CSS subset), DOM snapshot, element info, key chords |
 | cua surface | matched to the captured TypeScript definitions |
 | Audio recording | protocol, lifecycle and SCK loopback recorder implemented; live capture needs TCC |
 | Window-scoped bindings | **not implemented** (the macOS client exposes none either; only the Windows client has window APIs) |
@@ -142,8 +143,9 @@ wording (we match the captured text), and app-specific instruction texts.
 
 ```
 Swift unit tests        65   (framing, RPC, actions, observation, format parity,
-                             policy, screen lock, startApp, instructions)
-Node protocol/client    57   (framing, envelopes, errors, cua, browser, CDP)
+                             policy, screen lock, startApp, instructions, audio)
+Node protocol/client    63   (framing, envelopes, errors, cua, browser, CDP,
+                             locators, DOM, audio, fuzzing, CLI)
 Integration (real socket) 7   (interop, concurrency, oversized frame, semantics,
                              approvals, malformed instructions, audio denial)
 CI                      macos-15, green

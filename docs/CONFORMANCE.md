@@ -62,6 +62,10 @@ Action semantics:
 | element-index click | via AX indices | `backendDOMNodeId` + `DOM.getBoxModel` | same |
 | typeText/pressKey/setValue/selectText | yes | focus + input / `Runtime.callFunctionOn` | same |
 | screenshot | yes | `Page.captureScreenshot` | same |
+| `title()` / `url()` / `screenshot({fullPage, clip})` | yes | `Runtime.evaluate` / `Page.captureScreenshot` | `browser.test.mjs` |
+| `domSnapshot()` / `elementInfo(x, y)` | yes | `outerHTML` / `elementFromPoint` | `browser.test.mjs` |
+| `tab.playwright.locator(css)` | Playwright | CSS subset (click/fill/type/press/textContent/isVisible/getAttribute/count) | `browser.test.mjs` |
+| `markDeliverable` / `markHandoff` / `requestUserTakeover` | host status | local flags (no host channel) | `browser.test.mjs` |
 | `performSecondaryAction` | yes | **unsupported**, explicit error | `browser.test.mjs` |
 | `iab` / extension / MCP apps | yes | **not implemented** | — |
 
@@ -79,6 +83,12 @@ appear in `cua-repl` or `@oai/sky`'s mac target, and only the Windows client has
 `list_windows`/`get_window`. The TypeScript surface is broader than the macOS
 implementation. `performSecondaryAction` on browser tabs throws; browser `paste`
 does not touch the system clipboard.
+
+## Verification tooling
+
+`scripts/live-check.mjs` exercises ping, app inventory, AX text, screenshot,
+audio and browser against a real socket; skips are explicit and never counted as
+passes. `scripts/verify.sh` builds debug+release and runs every suite.
 
 ## Packaging
 
