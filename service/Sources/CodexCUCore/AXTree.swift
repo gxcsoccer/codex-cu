@@ -4,6 +4,27 @@ import ApplicationServices
 /// Renders the accessibility tree in the format observed from the original
 /// service: localized role descriptions, states, description/identifier/URL/
 /// value, secondary actions, tab indentation and `Window:/App:` header.
+/// Assigns stable, monotonically increasing ids to AX elements for the lifetime
+/// of the process. The observed trees have gaps (0, 4, 26, ...), which a per-walk
+/// counter cannot produce; stable ids also make diffs report real removals.
+public final class AXIDRegistry {
+  public static let shared = AXIDRegistry()
+  private var ids: [CFHashCode: Int] = [:]
+  private var next = 0
+  private let lock = NSLock()
+
+  public func id(for element: AXUIElement) -> Int {
+    let key = CFHash(element)
+    lock.lock()
+    defer { lock.unlock() }
+    if let existing = ids[key] { return existing }
+    let value = next
+    next += 1
+    ids[key] = value
+    return value
+  }
+}
+
 public enum AXTree {
   public struct Node {
     public let id: Int
@@ -50,7 +71,6 @@ public enum AXTree {
     let app = AXUIElementCreateApplication(pid)
     var nodes: [Node] = []
     var elements: [Int: AXUIElement] = [:]
-    var counter = 0
 
     func attribute(_ element: AXUIElement, _ name: String) -> AnyObject? {
       var value: CFTypeRef?
@@ -114,13 +134,12 @@ public enum AXTree {
         actions = names.filter { $0 != kAXPressAction as String }
       }
 
-      let id = counter
+      let id = AXIDRegistry.shared.id(for: element)
       nodes.append(Node(id: id, role: role, roleDescription: roleDescription, title: title,
                         description: description, identifier: identifier, url: url,
                         value: valueText, valueIsNumber: valueIsNumber,
                         states: states, secondaryActions: actions, depth: depth))
       elements[id] = element
-      counter += 1
       if let children = attribute(element, kAXChildrenAttribute) as? [AXUIElement] {
         for child in children { walk(child, depth: depth + 1) }
       }
