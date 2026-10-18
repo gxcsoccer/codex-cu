@@ -15,8 +15,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build service
+      - name: Build service (debug)
         run: swift build --package-path service
+
+      - name: Build service (release)
+        run: swift build -c release --package-path service
 
       - name: Swift tests
         run: swift test --package-path service

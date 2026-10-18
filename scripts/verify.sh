@@ -3,8 +3,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-echo "== swift build =="
+echo "== swift build (debug) =="
 swift build --package-path service
+
+echo "== swift build (release) =="
+swift build -c release --package-path service
 
 echo "== swift tests =="
 bash scripts/test-service.sh
