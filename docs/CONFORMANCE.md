@@ -73,8 +73,12 @@ Action semantics:
 `typeText`, plus `listBrowsers`, `getBrowser`, `listTabs`, `getTab`,
 `createBrowserTab`.
 
-Deviations: `getApp({windowId})` is rejected explicitly; `performSecondaryAction`
-on browser tabs throws; browser `paste` does not touch the system clipboard.
+Deviations: `getApp({windowId})` is rejected explicitly. Note that the macOS
+client we inspected exposes no window-scoped bindings either: `windowId` does not
+appear in `cua-repl` or `@oai/sky`'s mac target, and only the Windows client has
+`list_windows`/`get_window`. The TypeScript surface is broader than the macOS
+implementation. `performSecondaryAction` on browser tabs throws; browser `paste`
+does not touch the system clipboard.
 
 ## Packaging
 
