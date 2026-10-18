@@ -12,11 +12,11 @@ binary-identical internals.
 | request envelope (`clientApiVersion`, deadline, type) | yes | yes | `client/test/envelope.test.mjs` |
 | `ListApps` | yes | yes | `client/test/integration.test.mjs` (real socket + NSWorkspace) |
 | `AppStart` (launch/activate) | yes | yes | NSWorkspace open/activate |
-| `AppGetSkyshot` (AX text + screenshot) | yes | partial (AX text; screenshot gated) | needs Accessibility/Screen Recording |
+| `AppGetSkyshot` (AX text + screenshot) | yes | yes (AX text + PNG skyshot; SCK) | `ObservationTests` (fake capturer), real capture needs TCC |
 | `PerformAction` (click/drag/scroll/type/press/setValue/selectText/secondary) | yes | yes | `service/Tests/.../ActionTests.swift` (AX-first, CGEvent fallback) |
 | App policy / approvals | yes | partial (JSON allowlist, default allow) | `policyDenialBlocksActions` |
 | Error codes -10000…-10020 | yes | yes | `client/src/errors.mjs`, tests |
-| Diffing of AX trees | yes | planned | — |
+| Diffing of AX trees | yes | approximate (`~`/`+`/removed ranges) | `AXDiffTests` |
 | Audio recording | yes | out of scope (round 1) | — |
 
 ## Inferred response fields
@@ -61,9 +61,28 @@ output; the protocol document pins the semantics.
   file configured everything is allowed, which differs from the original's
   first-use prompt; the file format is documented in `docs/PROTOCOL.md`.
 
+## M3 semantics
+
+- **Skyshot**: `SCScreenshotManager` captures the app's first on-screen window,
+  encodes PNG, writes it under `$TMPDIR/codex-cu/`, and returns
+  `{skyshot: {screenshot: {url: "file://...", mimeType: "image/png"}}}`. The
+  previous screenshot for the same app is deleted when a new observation replaces
+  it (mirrors the original's `TemporaryFile` lifetime).
+- **Diffing**: when a previous observation exists and `disableDiff` is false, the
+  response text is a diff: unchanged nodes omitted, `~` changed, `+` added,
+  removed IDs summarized as ranges. The exact wording of the original's diff
+  header is unknown; semantics are covered by tests.
+- **App-specific instructions**: accepted as a bundle-id → string map at
+  construction time and echoed as `appSpecificInstructions`. The original's
+  built-in texts are not recoverable from the client; none are shipped.
+
 ## Known gaps
 
 - Response schemas for `AppGetSkyshot` / `PerformAction` are inferred.
+- The diff text is semantically equivalent but not byte-identical to the original.
+- Screenshot capture selects the first on-screen window; multi-window apps may
+  need a window selector (the original's `getAppState` has no window argument
+  either, so this matches the observed API surface).
 - The original enforces a peer entitlement (`senderProcessNotAuthenticated`);
   this implementation authenticates by socket ownership instead (documented in
   `service/Sources/CodexCU/Server.swift`).

@@ -7,17 +7,32 @@ public final class DefaultHandlers: ServiceHandlers {
   private let executor: ActionExecuting
   private let permissionsTrusted: () -> Bool
   private let appExists: (String) throws -> Void
+  private let pidForApp: (String) throws -> pid_t
+  private let snapshotProvider: (pid_t) throws -> AXTree.Snapshot
+  private let screenshotter: ScreenshotCapturing?
+  private let screenshotStore: ScreenshotStore
+  private let instructions: [String: String]
 
   public init(approvalsURL: URL? = nil,
               store: SnapshotStore = SnapshotStore(),
               executor: ActionExecuting = SystemActionExecutor(),
               permissionsTrusted: @escaping () -> Bool = { AXIsProcessTrusted() },
-              appExists: @escaping (String) throws -> Void = { app in _ = try DefaultHandlers.resolveRunning(app) }) {
+              appExists: @escaping (String) throws -> Void = { app in _ = try DefaultHandlers.resolveRunning(app) },
+              pidForApp: @escaping (String) throws -> pid_t = { try DefaultHandlers.resolveRunning($0).processIdentifier },
+              snapshotProvider: @escaping (pid_t) throws -> AXTree.Snapshot = { try AXTree.snapshot(pid: $0) },
+              screenshotter: ScreenshotCapturing? = SystemScreenshotCapturer(),
+              screenshotStore: ScreenshotStore = ScreenshotStore(),
+              instructions: [String: String] = [:]) {
     self.approvalsURL = approvalsURL
     self.store = store
     self.executor = executor
     self.permissionsTrusted = permissionsTrusted
     self.appExists = appExists
+    self.pidForApp = pidForApp
+    self.snapshotProvider = snapshotProvider
+    self.screenshotter = screenshotter
+    self.screenshotStore = screenshotStore
+    self.instructions = instructions
   }
 
   // MARK: - inventory / lifecycle
@@ -65,15 +80,34 @@ public final class DefaultHandlers: ServiceHandlers {
       throw ServiceError(.permissionsNotGranted,
                          "accessibility permission is required to read \(app)")
     }
-    let running = try Self.resolveRunning(app)
-    let snapshot = try AXTree.snapshot(pid: running.processIdentifier)
-    let revision = store.put(app: app, elements: snapshot.elements)
-    return [
+    let pid = try pidForApp(app)
+    let snapshot = try snapshotProvider(pid)
+    let previous = store.nodes(for: app)
+
+    var skyshot: Any = NSNull()
+    var screenshotURL: URL?
+    if let screenshotter {
+      let data = try screenshotter.capture(pid: pid)
+      screenshotURL = try screenshotStore.write(data, app: app)
+      skyshot = ["screenshot": ["url": screenshotURL!.absoluteString, "mimeType": "image/png"]]
+    }
+
+    let text = (!disableDiff ? previous.map { AXDiff.render(previous: $0, current: snapshot.nodes, app: app) } : nil)
+      ?? AXTree.render(snapshot.nodes)
+    let previousScreenshotURL = store.screenshotURL(for: app)
+    let revision = store.put(app: app, elements: snapshot.elements, nodes: snapshot.nodes, screenshotURL: screenshotURL)
+    screenshotStore.remove(previousScreenshotURL)
+
+    var result: [String: Any] = [
       "app": app,
-      "text": AXTree.render(snapshot.nodes),
+      "text": text,
       "revision": revision,
-      "skyshot": NSNull(), // screenshots are a later milestone; see docs/COMPATIBILITY.md
+      "skyshot": skyshot,
     ]
+    if let appInstructions = instructions[app] {
+      result["appSpecificInstructions"] = appInstructions
+    }
+    return result
   }
 
   public func policy(_ app: String) throws -> [String: Any] {
