@@ -151,9 +151,10 @@ Integration (real socket) 7   (interop, concurrency, oversized frame, semantics,
 CI                      macos-15, green
 ```
 
-Not covered by CI: live Accessiblity/Screen Recording (runner has neither); a real
-Chrome (the dev machine's Chrome is an `aha-runtime` stub with no browser
-WebSocket); audio.
+CI cannot exercise Accessibility, Screen Recording or a real browser. On the
+development machine, `live-check` reports PASS for ping, app inventory, AX text
+(`Window:` header), a 175 KB screenshot, a 24 kHz stereo WAV and a real Chrome 149
+CDP session.
 
 ## 10. Reproduce
 

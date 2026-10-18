@@ -50,6 +50,24 @@ Add `--browser http://127.0.0.1:9222` if a Chrome is running with
 `FAIL` is a real defect; `SKIP` means the environment did not provide the
 precondition. Exit code is non-zero only when a check fails.
 
+## Actual result on the development machine
+
+With Accessibility granted to the responsible app (DeepSeek Harness) and a real
+Chrome for Testing on port 9555:
+
+```
+PASS ping: CodexComputerUseIPC-5
+PASS listApps: 11 apps
+PASS getAppState: Window header present
+PASS screenshot: 175490 bytes
+PASS audio: 26924 bytes, 24000 Hz, 2 ch
+PASS browser: 4 AX lines
+```
+
+The service calls `NSApplication.shared` at startup: without a WindowServer
+connection, `SCContentFilter(desktopIndependentWindow:)` aborts in
+`CGS_REQUIRE_INIT` on macOS 27.
+
 ## 3. Manual spot checks
 
 ```bash

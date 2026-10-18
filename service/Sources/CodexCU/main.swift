@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import CodexCUCore
 
@@ -58,6 +59,12 @@ if let instructionsPath {
     exit(1)
   }
 }
+// ScreenCaptureKit's window filter needs a WindowServer connection; a plain CLI
+// process aborts in CGS_REQUIRE_INIT without it. Initializing NSApplication is
+// the supported way to establish that connection.
+_ = NSApplication.shared
+NSApplication.shared.setActivationPolicy(.prohibited)
+
 let handlers = DefaultHandlers(
   approvalsURL: approvalsPath.map { URL(fileURLWithPath: $0) },
   launchTimeout: launchTimeout,

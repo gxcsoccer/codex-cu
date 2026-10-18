@@ -32,23 +32,26 @@ deviation written down and tested where the environment allows.
 | Diff header/wording | copied from captured output, but not proven byte-identical for every app |
 | `appSpecificInstructions` shipped empty by default | original texts are not recoverable; `--instructions` supplies them |
 
-## Blocked by this machine
+## Verified live on this machine
 
-| Item | Blocker |
+| Item | Result |
 |---|---|
-| Live native observation/actions | CLI process has neither Accessibility nor Screen Recording (`AXIsProcessTrusted() == false`) |
-| Live audio capture | same TCC denial (verified `-10009` path) |
-| Real-browser smoke | the installed Chrome is an `aha-runtime` stub without a browser WebSocket |
+| Native inventory + AX text | PASS (11 apps, `Window:` header) |
+| Screenshot | PASS (175,490-byte PNG) |
+| Audio capture | PASS (24 kHz stereo WAV, 26,924 bytes) |
+| Browser | PASS (Chrome for Testing 149, real CDP WebSocket) |
 
-`scripts/live-check.mjs` and `docs/LIVE-VERIFICATION.md` exist so these can be
-verified on a normal desktop session without changing code.
+The system Chrome is an `aha-runtime` stub, so browser verification uses the
+Playwright-cached **Chrome for Testing**; the service itself is unchanged.
+
+`scripts/live-check.mjs` reruns the same checks on any desktop session.
 
 ## Not attempted
 
 | Item | Reason |
 |---|---|
 | `iab` / extension / MCP-app browser backends | require the original extension and native-messaging host |
-| Audio live capture verification | blocked by TCC here; implementation is present |
+| Audio live capture verification | now PASS on this machine (`live-check --audio`) |
 | Windows-specific `list_windows`/`get_window` | macOS client exposes no window-scoped bindings either |
 | Exact response schemas for `AppGetSkyshot`/`PerformAction` beyond consumed fields | not observable without an entitled peer |
 
