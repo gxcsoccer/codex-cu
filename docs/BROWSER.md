@@ -84,6 +84,12 @@ Differences from native:
   report real removals across observations; `InlineTextBox` layout nodes are
   filtered out.
 
+## Frames
+
+`getAXState()` reads the **main frame** only. The original merges per-frame trees
+and its own docs warn that frame ownership is omitted; use the Playwright
+backend's `tab.playwright.frameLocator(...)` for iframe content and interaction.
+
 ## Playwright backend (closest to the original)
 
 The original stack is Playwright + WASM AX. `PlaywrightBrowserProvider` uses the

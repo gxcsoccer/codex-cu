@@ -160,3 +160,9 @@ service's `TemporaryFile` deinit [observed in symbols].
 | -10018 | ambiguousApp |
 | -10019 | couldNotGetBootstrapPort |
 | -10020 | screenLocked |
+
+## Request types present in the service but unused by the shipped client
+
+`ComputerUseIPCSkysightUpdateObservationPolicyRequest` exists in
+`SkyComputerUseService` but no shipped `@oai/sky` client sends it; the seven
+types above are the complete set observed on the wire.
