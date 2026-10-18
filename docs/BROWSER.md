@@ -65,7 +65,35 @@ tests with a fake CDP connection, and `client/test/cdp-live.test.mjs` runs the
 whole browser surface against a real WebSocket CDP server implementation
 (handshake, framed JSON-RPC, sessions).
 
-## Playwright-style locators
+## Playwright backend (closest to the original)
+
+The original stack is Playwright + WASM AX. `PlaywrightBrowserProvider` uses the
+real Playwright engine (the app bundles 1.57) over CDP, so locators, auto-waiting
+and actionability are Playwright's own:
+
+```js
+import { Cua } from './client/src/cua.mjs';
+import { PlaywrightBrowserProvider } from './client/src/browser-playwright.mjs';
+
+const cua = new Cua({
+  socketPath: '/tmp/codex-cu.sock',
+  browserProvider: new PlaywrightBrowserProvider({ endpoint: 'http://127.0.0.1:9555' }),
+});
+const browser = await cua.getBrowser();
+const tab = await browser.createTab('https://example.com');
+await tab.playwright.getByRole('button', { name: 'Sign in' }).click();
+await tab.playwright.getByLabel('Email').fill('a@b.c');
+```
+
+- `playwright-core` is imported dynamically; if it is not installed, the macOS
+  ChatGPT bundle copy is used as a fallback. For a standalone install run
+  `npm install playwright-core`.
+- Accessibility text and element-index input still use the CDP session, so
+  `getAXState()`/`click(index)` keep the same shapes as the CDP backend.
+- `provider.close()` disconnects without terminating Chrome (verified live).
+- `PLAYWRIGHT_CDP_ENDPOINT` enables the live test; CI skips it.
+
+## Playwright-style locators (CDP backend)
 
 `tab.playwright.locator(selector)` supports a deterministic CSS subset:
 

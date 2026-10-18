@@ -53,7 +53,7 @@ Action semantics:
 
 | Item | Original | This repo | Evidence |
 |---|---|---|---|
-| `listBrowsers` | Playwright + WASM AX | CDP `/json/version` | `browser.test.mjs` |
+| `listBrowsers` | Playwright + WASM AX | CDP `/json/version`, or Playwright over CDP | `browser.test.mjs`, `browser-playwright.test.mjs` |
 | `getBrowser` / `documentation` | yes | yes | same |
 | `listTabs` / `getTab` | yes | `Target.getTargets` / attach | `browser.test.mjs`, `cdp-live.test.mjs` |
 | `createBrowserTab` | yes | `Target.createTarget` | same |
@@ -64,7 +64,7 @@ Action semantics:
 | screenshot | yes | `Page.captureScreenshot` | same |
 | `title()` / `url()` / `screenshot({fullPage, clip})` | yes | `Runtime.evaluate` / `Page.captureScreenshot` | `browser.test.mjs` |
 | `domSnapshot()` / `elementInfo(x, y)` | yes | `outerHTML` / `elementFromPoint` | `browser.test.mjs` |
-| `tab.playwright.locator(css)` | Playwright | CSS subset (click/fill/type/press/textContent/isVisible/getAttribute/count) | `browser.test.mjs` |
+| `tab.playwright` | Playwright | **real Playwright Page** on the Playwright backend (getByRole/text/testid/label, auto-wait), CSS subset on the CDP backend | `browser-playwright.test.mjs` |
 | `markDeliverable` / `markHandoff` / `requestUserTakeover` | host status | local flags (no host channel) | `browser.test.mjs` |
 | `performSecondaryAction` | yes | **unsupported**, explicit error | `browser.test.mjs` |
 | `iab` / extension / MCP apps | yes | **not implemented** | — |

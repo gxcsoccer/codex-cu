@@ -97,15 +97,18 @@ without Accessibility there is nothing to inspect and it returns immediately.
 ## 6. Browser stack
 
 The original uses Playwright, a WASM accessibility layer and a Chrome extension.
-The reimplementation exposes the **same model-facing API** over CDP:
+The reimplementation exposes the **same model-facing API** with two backends:
+a dependency-free CDP implementation (default) and `PlaywrightBrowserProvider`,
+which uses the app's bundled Playwright 1.57 for real locators and auto-waiting.
 
 - `listBrowsers` / `getBrowser` / `listTabs` / `getTab` / `createBrowserTab`;
 - Tab navigation, AX text (`Accessibility.getFullAXTree`), screenshots, and input;
 - element indices resolve through `backendDOMNodeId` + `DOM.getBoxModel`;
 - `setValue`/`selectText` use `Runtime.callFunctionOn` with input/change events.
 
-This is API-compatible but not transport-identical: there is no Playwright or
-extension, and `iab`/MCP-app backends are absent.
+The Playwright backend closes most of the engine gap; the WASM accessibility
+layer is replaced by CDP `Accessibility.getFullAXTree`, and `iab`/MCP-app
+transports are absent.
 
 ## 7. Permissions and safety
 

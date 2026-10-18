@@ -24,8 +24,8 @@ deviation written down and tested where the environment allows.
 
 | Deviation | Why |
 |---|---|
-| Browser backend uses **CDP** instead of Playwright + WASM AX + Chrome extension | no extension/host to reuse; CDP is the closest available transport |
-| Browser input is index/coordinate/CSS-locator based | Playwright pseudo-selectors and auto-waiting are a large runtime we do not ship |
+| Browser backend can use **CDP** or **Playwright** (`PlaywrightBrowserProvider`) | the Playwright backend uses the app's own 1.57 engine for locators, auto-waiting and actionability; the CDP backend is the dependency-free default |
+| No Playwright WASM AX layer or Chrome extension host | accessibility text stays on CDP `Accessibility.getFullAXTree`; the extension/iab transports are not reproduced |
 | `performSecondaryAction` on browser tabs throws | CDP has no accessibility secondary-action equivalent |
 | Browser `paste` uses `Input.insertText` | clipboard writes need a trusted gesture and permissions; documented, not faked |
 | Approvals default to allow; malformed files fail open | the original's first-use prompt UI is not reproduced |
@@ -39,7 +39,8 @@ deviation written down and tested where the environment allows.
 | Native inventory + AX text | PASS (11 apps, `Window:` header) |
 | Screenshot | PASS (175,490-byte PNG) |
 | Audio capture | PASS (24 kHz stereo WAV, 26,924 bytes) |
-| Browser | PASS (Chrome for Testing 149, real CDP WebSocket) |
+| Browser (CDP) | PASS (Chrome for Testing 149, real CDP WebSocket) |
+| Browser (Playwright) | PASS (live test: getByRole click, AX text, screenshot) |
 
 The system Chrome is an `aha-runtime` stub, so browser verification uses the
 Playwright-cached **Chrome for Testing**; the service itself is unchanged.
