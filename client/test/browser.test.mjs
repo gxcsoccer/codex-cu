@@ -190,3 +190,14 @@ test('parseKeyChord covers modifiers, named keys and F-keys', () => {
   assert.throws(() => parseKeyChord('hyper+x'), /unknown modifier/);
   assert.throws(() => parseKeyChord('cmd+'), /unsupported browser key/);
 });
+
+test('markDeliverable/markHandoff/requestUserTakeover set local state', async () => {
+  const tab = new BrowserTab({ connection: new FakeConnection(), targetId: 'T', sessionId: 'S' });
+  assert.equal(tab.status, null);
+  await tab.markDeliverable();
+  assert.equal(tab.status, 'deliverable');
+  await tab.markHandoff();
+  assert.equal(tab.status, 'handoff');
+  await tab.requestUserTakeover();
+  assert.equal(tab.takeoverRequested, true);
+});

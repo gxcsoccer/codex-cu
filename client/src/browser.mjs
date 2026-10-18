@@ -55,7 +55,8 @@ export class BrowserTab {
     this.id = targetId;
     this.sessionId = sessionId;
     this.info = info;
-    this.deliverable = false;
+    this.status = null; // 'deliverable' | 'handoff'
+    this.takeoverRequested = false;
     this.axIndex = new Map(); // AX nodeId -> backendDOMNodeId
   }
 
@@ -67,7 +68,9 @@ export class BrowserTab {
   async forward() { await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(1) }, this.sessionId); }
   async reload() { await this.connection.send('Page.reload', {}, this.sessionId); }
   async close() { await this.connection.send('Target.closeTarget', { targetId: this.id }); }
-  markDeliverable() { this.deliverable = true; }
+  async markDeliverable() { this.status = 'deliverable'; }
+  async markHandoff() { this.status = 'handoff'; }
+  async requestUserTakeover() { this.takeoverRequested = true; }
 
   async historyEntry(delta) {
     const { currentIndex, entries } = await this.connection.send('Page.getNavigationHistory', {}, this.sessionId);

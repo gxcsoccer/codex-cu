@@ -49,7 +49,8 @@ const cua = new Cua({
 | `drag(from, to)` | mousePressed/moved/released |
 | `typeText(text)` | `Input.insertText` (layout independent) |
 | `pressKey(index?, key)` | `Input.dispatchKeyEvent`; supports chords (`cmd+shift+a`), named keys, arrows and F1–F12, with the CDP modifier bitmask |
-| `markDeliverable()` | local flag |
+| `markDeliverable()` / `markHandoff()` | local `status` flag (`deliverable` / `handoff`) |
+| `requestUserTakeover()` | local `takeoverRequested` flag |
 
 ## Environment note
 
@@ -69,6 +70,13 @@ whole browser surface against a real WebSocket CDP server implementation
   equivalent of an accessibility secondary action) and throws explicitly.
 - `paste` is implemented as focus + `Input.insertText`; it does not write the
   system clipboard and does not preserve rich text formats.
+- `markDeliverable`/`markHandoff`/`requestUserTakeover` do not reach a host in the
+  CDP backend: there is no tab-status channel. They set local state so callers and
+  tests can observe intent; a host integration would need an event sink.
+- Clipboard-backed paste was evaluated: it needs `Browser.grantPermissions`
+  plus a trusted user gesture for the page to accept `navigator.clipboard`
+  writes; synthetic `Cmd+V` is not reliable. `insertText` is the deterministic
+  subset, and the limitation is documented rather than faked.
 - The original can also drive `iab` (in-app browser), extension-backed tabs and
   MCP apps; this provider only speaks CDP.
 - The browser documentation string is synthesized, not the original's
