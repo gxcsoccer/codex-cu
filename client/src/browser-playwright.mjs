@@ -136,6 +136,23 @@ export class PlaywrightTab {
   }
 
   async paste(index, text) {
+    // The original pastes through the clipboard. Do the same when the page is a
+    // secure origin and the context can be granted clipboard permissions; fall
+    // back to insertText (same visible result for plain text) otherwise.
+    let origin = 'null';
+    try { origin = new URL(this.page.url()).origin; } catch { /* keep null */ }
+    if (origin !== 'null') {
+      try {
+        await this.page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
+        await this.page.evaluate((value) => navigator.clipboard.writeText(value), text);
+        if (typeof index === 'number') await this.cdpTab.focus(index);
+        const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+        await this.page.keyboard.press(`${modifier}+V`);
+        return;
+      } catch {
+        // fall through to the deterministic path
+      }
+    }
     if (typeof index === 'number') await this.cdpTab.typeText(index, text);
     else await this.page.keyboard.insertText(text);
   }

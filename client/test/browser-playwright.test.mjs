@@ -1,4 +1,5 @@
 import test from 'node:test';
+import http from 'node:http';
 import assert from 'node:assert/strict';
 import { toPlaywrightChord, PlaywrightBrowserProvider } from '../src/browser-playwright.mjs';
 
@@ -36,5 +37,29 @@ test('Playwright backend drives a real Chrome over CDP', { skip: !endpoint }, as
   } finally {
     await tab.close();
     await provider.close();
+  }
+});
+
+test('paste uses the clipboard on a secure origin', { skip: !endpoint }, async () => {
+  const server = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end('<title>Paste</title><input id=i>');
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const provider = new PlaywrightBrowserProvider({ endpoint });
+  const browser = await provider.getBrowser();
+  try {
+    const tab = await browser.createTab(`${origin}/`);
+    const axes = await tab.getAXState();
+    const line = axes.split('\n').find((candidate) => candidate.includes('textbox'));
+    const index = Number(line.trim().split(' ')[0]);
+    await tab.paste(index, 'pasted text');
+    assert.equal(await tab.playwright.locator('#i').inputValue(), 'pasted text');
+    assert.equal(await tab.page.evaluate(() => navigator.clipboard.readText()), 'pasted text');
+    await tab.close();
+  } finally {
+    await provider.close();
+    await new Promise((resolve) => server.close(resolve));
   }
 });

@@ -139,8 +139,11 @@ or actionability check — `click()` fires `el.click()` immediately.
   explicit error instead of clicking the wrong node.
 - `performSecondaryAction` is not implemented for tabs (CDP has no direct
   equivalent of an accessibility secondary action) and throws explicitly.
-- `paste` is implemented as focus + `Input.insertText`; it does not write the
-  system clipboard and does not preserve rich text formats.
+- On the **Playwright backend**, `paste` writes the page clipboard
+  (`navigator.clipboard.writeText` with clipboard permissions) and sends the
+  platform paste shortcut; verified live against a local HTTP origin. On the CDP
+  backend it falls back to focus + `Input.insertText`. Rich-text formats are not
+  preserved.
 - `markDeliverable`/`markHandoff`/`requestUserTakeover` do not reach a host in the
   CDP backend: there is no tab-status channel. They set local state so callers and
   tests can observe intent; a host integration would need an event sink.
