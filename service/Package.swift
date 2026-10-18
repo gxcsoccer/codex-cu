@@ -9,7 +9,7 @@ let package = Package(
     .library(name: "CodexCUCore", targets: ["CodexCUCore"]),
   ],
   targets: [
-    .target(name: "CodexCUCore", path: "Sources/CodexCUCore"),
+    .target(name: "CodexCUCore", path: "Sources/CodexCUCore", resources: [.copy("Resources/AppInstructions")]),
     .executableTarget(name: "CodexCU", dependencies: ["CodexCUCore"], path: "Sources/CodexCU"),
     .testTarget(name: "CodexCUTests", dependencies: ["CodexCUCore"], path: "Tests/CodexCUTests"),
   ]

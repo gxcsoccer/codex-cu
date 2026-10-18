@@ -30,7 +30,7 @@ deviation written down and tested where the environment allows.
 | Browser `paste` uses the page clipboard on the Playwright backend, `Input.insertText` on CDP | clipboard writes need a trusted gesture and permissions; the Playwright path is verified live, the CDP path is the deterministic fallback |
 | Approvals default to allow; malformed files fail open | the original's first-use prompt UI is not reproduced |
 | Diff header/wording | copied from captured output, but not proven byte-identical for every app |
-| `appSpecificInstructions` shipped empty by default | original texts are not recoverable; `--instructions` supplies them |
+| `appSpecificInstructions` | seven built-in texts shipped verbatim from `Package_ComputerUse.bundle`; bundle mapping partly inferred; `--instructions` overrides |
 
 ## Verified live on this machine
 

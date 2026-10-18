@@ -23,7 +23,7 @@ response and are documented as such.
 |---|---|---|---|
 | `ListApps` | yes | yes | integration test |
 | `AppStart` | yes | yes (NSWorkspace + wait for the first AX window) | `StartAppTests` |
-| `AppGetSkyshot` | AX text + screenshot | yes; focused-window root, localized roles, stable element ids; `appSpecificInstructions` from `--instructions` | `FormatParityTests`, `ObservationTests`, `AXIDRegistryTests` |
+| `AppGetSkyshot` | AX text + screenshot | yes; focused-window root, localized roles, stable element ids; built-in `AppInstructions` (7 apps) with `--instructions` override | `FormatParityTests`, `ObservationTests`, `AXIDRegistryTests`, `AppInstructionsTests` |
 | Screenshot | SCK → temp PNG → `file://` | same shape; old file removed | `ObservationTests` |
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
 | `AppPolicy` | `persistentApprovals` (alwaysAllow/alwaysDeny), `allowAllChats`; result carries `allowed` + `decision` | same schema (`--approvals`); explicit alwaysDeny -> `-10006`; missing/malformed/absent -> allow (**fail-open deviation**) | `PolicyTests`, integration test |

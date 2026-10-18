@@ -45,6 +45,13 @@ codex-cu --socket /tmp/cu.sock \
   --launch-timeout 8
 ```
 
+Built-in instructions for seven apps ship with the service (copied from
+`Package_ComputerUse.bundle/Contents/Resources/AppInstructions`): Music, Clock,
+Notion, Numbers, Slack, Spotify and iPhone Mirroring. The bundle ids are matched
+from the adjacent service strings (Spotify/Slack/Numbers confirmed, the rest
+inferred); a display-name match is used as a fallback. `--instructions`
+overrides them:
+
 `instructions.json` maps bundle ids to the text returned as
 `appSpecificInstructions`:
 

@@ -7,6 +7,24 @@ import { Client } from './client.mjs';
 
 const DIRECTIONS = new Set(['up', 'down', 'left', 'right', 'u', 'd', 'l', 'r']);
 
+// The original mac client wraps the first app-specific instruction block per app
+// and excludes Numbers (window_result.js). The delivered set is process-wide.
+const INSTRUCTION_EXCLUSIONS = new Set(['com.apple.iWork.Numbers']);
+const DELIVERED_INSTRUCTIONS = new Set();
+
+function appKey(app) {
+  if (app && typeof app === 'object') return app.bundleIdentifier ?? app.app ?? '';
+  return String(app ?? '');
+}
+
+function withInstructions(app, text, instructions) {
+  if (typeof instructions !== 'string' || instructions.length === 0) return text;
+  const key = appKey(app);
+  if (INSTRUCTION_EXCLUSIONS.has(key) || DELIVERED_INSTRUCTIONS.has(key)) return text;
+  DELIVERED_INSTRUCTIONS.add(key);
+  return `<app_specific_instructions>\n${instructions}\n</app_specific_instructions>\n${text}`;
+}
+
 function normalizeDirection(direction) {
   const map = { u: 'up', d: 'down', l: 'left', r: 'right' };
   const value = map[direction] ?? direction;
@@ -30,7 +48,7 @@ export class App {
   async getAXState({ disableDiffing = false } = {}) {
     const result = await this.client.getAppState(this.app, { disableDiff: disableDiffing });
     this.lastState = result;
-    return result.text;
+    return withInstructions(this.app, result.text, result.appSpecificInstructions);
   }
 
   async getScreenshot() {

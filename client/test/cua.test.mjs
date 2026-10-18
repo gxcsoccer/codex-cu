@@ -126,3 +126,28 @@ test('stopAudioRecording returns filepath, bytes and a data URL', async () => {
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('app-specific instructions wrap once per app and skip Numbers', async () => {
+  const mock = await startMockServer((message) => {
+    if (message.method === 'ping') return { result: { serverApiVersion: 'CodexComputerUseIPC-5' } };
+    const app = message.params?.request?.app;
+    return { result: { text: 'tree', appSpecificInstructions: 'Use the sidebar.' , app } };
+  });
+  const cua = new Cua({ socketPath: mock.socketPath });
+  try {
+    const spotify = await cua.getApp('com.spotify.client');
+    const first = await spotify.getAXState();
+    assert.equal(first, '<app_specific_instructions>\nUse the sidebar.\n</app_specific_instructions>\ntree');
+    const second = await spotify.getAXState();
+    assert.equal(second, 'tree');
+
+    const notion = await cua.getApp('notion.id');
+    assert.match(await notion.getAXState(), /^<app_specific_instructions>/);
+
+    const numbers = await cua.getApp('com.apple.iWork.Numbers');
+    assert.equal(await numbers.getAXState(), 'tree');
+  } finally {
+    cua.close();
+    await mock.close();
+  }
+});

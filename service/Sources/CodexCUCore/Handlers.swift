@@ -152,7 +152,7 @@ public final class DefaultHandlers: ServiceHandlers {
       "revision": revision,
       "skyshot": skyshot,
     ]
-    if let appInstructions = instructions[app] {
+    if let appInstructions = instructions[app] ?? AppInstructions.text(for: app) {
       result["appSpecificInstructions"] = appInstructions
     }
     return result

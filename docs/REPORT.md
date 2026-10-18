@@ -139,6 +139,7 @@ while the screen is locked (`-10020`). The socket is user-owned with no TCP list
 | Browser extras | locators (CSS subset), DOM snapshot, element info, key chords |
 | cua surface | matched to the captured TypeScript definitions |
 | Audio recording | protocol, lifecycle and SCK loopback recorder implemented; live capture needs TCC |
+| App instructions | seven texts shipped; wrapped/deduped by the client like `window_result.js` |
 | Window-scoped bindings | **not implemented** (the macOS client exposes none either; only the Windows client has window APIs) |
 
 Inferred items (documented in `PROTOCOL.md`): exact response schemas for
