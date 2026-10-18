@@ -73,6 +73,7 @@ export class PlaywrightTab {
     // The full Playwright API: locators, getByRole/text/testid/label, evaluate.
     this.playwright = page;
     this.axIndex = this.cdpTab.axIndex;
+    this.frameSessions = new WeakMap();
   }
 
   async goto(url) { await this.page.goto(url, { waitUntil: 'domcontentloaded' }); }
@@ -92,10 +93,33 @@ export class PlaywrightTab {
 
   async getScreenshot() { return this.screenshot(); }
 
-  async getAXState() {
-    const text = await this.cdpTab.getAXState();
+  async getAXState(options = {}) {
+    this.cdpTab.frameProviders = await this.frameProviders();
+    const text = await this.cdpTab.getAXState(options);
     this.axIndex = this.cdpTab.axIndex;
     return text;
+  }
+
+  /** CDP sessions for out-of-process frames; in-process frames are merged by the page session. */
+  async frameProviders() {
+    const providers = [];
+    for (const frame of this.page.frames()) {
+      if (frame === this.page.mainFrame()) continue;
+      let session = this.frameSessions.get(frame);
+      if (!session) {
+        try {
+          session = await this.page.context().newCDPSession(frame);
+          this.frameSessions.set(frame, session);
+        } catch { continue; }
+      }
+      let tree;
+      try { ({ frameTree: { frame: tree } } = await session.send('Page.getFrameTree')); } catch { continue; }
+      // An out-of-process frame session is rooted at its own frame; an in-process
+      // frame session is rooted at the page, which the page-session merge covers.
+      if (!tree?.parentId) continue;
+      providers.push({ frameId: tree.id, send: (method, params) => session.send(method, params) });
+    }
+    return providers;
   }
 
   async evaluate(script, arg) {

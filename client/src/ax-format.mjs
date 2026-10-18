@@ -89,6 +89,9 @@ export function buildAXEntries(nodes, { domIds = new Map() } = {}) {
       valueIsNumber: isNumber,
       states: statesFor(node),
       backendDOMNodeId: node.backendDOMNodeId,
+      actionSessionId: node.actionSessionId,
+      actionSend: node.actionSend,
+      coordinateSpace: node.coordinateSpace ?? 'page',
     });
   }
   return entries;

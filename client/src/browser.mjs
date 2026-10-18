@@ -165,7 +165,12 @@ export class BrowserTab {
     this.axIndex = new Map(
       entries
         .filter((entry) => entry.backendDOMNodeId !== undefined)
-        .map((entry) => [String(entry.id), entry.backendDOMNodeId]),
+        .map((entry) => [String(entry.id), {
+          backendNodeId: entry.backendDOMNodeId,
+          sessionId: entry.actionSessionId,
+          send: entry.actionSend,
+          space: entry.coordinateSpace,
+        }]),
     );
     if (!disableDiff && this.previousAX) {
       const text = renderAXDiff(this.previousAX, entries);
@@ -189,12 +194,11 @@ export class BrowserTab {
     } catch {
       return pageNodes;
     }
-    if (!frameTree?.childFrames) return pageNodes;
     const frames = [];
     const collect = (node) => {
       for (const child of node.childFrames ?? []) { frames.push(child); collect(child); }
     };
-    collect(frameTree);
+    if (frameTree?.childFrames) collect(frameTree);
 
     const merged = pageNodes.map((node) => ({ ...node }));
     const byFrame = new Map(); // frameId -> { prefix, nodes }
@@ -228,7 +232,86 @@ export class BrowserTab {
       merged.push(...nodes);
       byFrame.set(frame.id, { prefix, nodes });
     }
+
+    // Playwright exposes per-frame CDP sessions; the page session cannot attach
+    // out-of-process targets, so those are merged from frameProviders instead.
+    if (this.frameProviders) {
+      let providerIndex = 0;
+      for (const provider of this.frameProviders) {
+        providerIndex += 1;
+        let frameNodes;
+        try { ({ nodes: frameNodes } = await provider.send('Accessibility.getFullAXTree')); } catch { continue; }
+        if (!frameNodes?.length) continue;
+        let ownerBackend;
+        try { ({ backendNodeId: ownerBackend } = await this.connection.send('DOM.getFrameOwner', { frameId: provider.frameId }, this.sessionId)); } catch { continue; }
+        const owner = merged.find((node) => node.backendDOMNodeId === ownerBackend);
+        if (!owner) continue;
+        const prefix = `p${providerIndex}:`;
+        const base = 200_000_000 * providerIndex;
+        merged.push(...frameNodes.map((node, position) => ({
+          ...node,
+          nodeId: `${prefix}${node.nodeId}`,
+          parentId: node.parentId ? `${prefix}${node.parentId}` : String(owner.nodeId),
+          displayId: base + (node.backendDOMNodeId ?? 500_000 + position),
+          actionSend: provider.send,
+          coordinateSpace: 'frame',
+        })));
+      }
+      return merged;
+    }
+
+    let targetInfos = [];
+    try { ({ targetInfos } = await this.connection.send('Target.getTargets')); } catch { /* no target list */ }
+    let oopif = 0;
+    for (const target of (targetInfos ?? []).filter((info) => info.type === 'iframe')) {
+      oopif += 1;
+      let sessionId = this.iframeSessions?.get(target.targetId);
+      if (!sessionId) {
+        try {
+          // Attach at the browser level; page-session attach returns the parent
+          // frame instead of the out-of-process child.
+          ({ sessionId } = await this.connection.send('Target.attachToTarget', { targetId: target.targetId, flatten: true }));
+        } catch { continue; }
+        if (!this.iframeSessions) this.iframeSessions = new Map();
+        this.iframeSessions.set(target.targetId, sessionId);
+      }
+      let childFrameTree;
+      try { ({ frameTree: childFrameTree } = await this.connection.send('Page.getFrameTree', {}, sessionId)); } catch { continue; }
+      const frameId = childFrameTree?.frame?.id;
+      if (!frameId) continue;
+      let frameNodes;
+      try {
+        await this.connection.send('Accessibility.enable', {}, sessionId);
+        ({ nodes: frameNodes } = await this.connection.send('Accessibility.getFullAXTree', {}, sessionId));
+      } catch { continue; }
+      if (!frameNodes?.length) continue;
+      let ownerBackend;
+      try { ({ backendNodeId: ownerBackend } = await this.connection.send('DOM.getFrameOwner', { frameId }, this.sessionId)); } catch { continue; }
+      const owner = merged.find((node) => node.backendDOMNodeId === ownerBackend);
+      if (!owner) continue;
+      const prefix = `o${oopif}:`;
+      const base = 100_000_000 * oopif;
+      merged.push(...frameNodes.map((node, position) => ({
+        ...node,
+        nodeId: `${prefix}${node.nodeId}`,
+        parentId: node.parentId ? `${prefix}${node.parentId}` : String(owner.nodeId),
+        displayId: base + (node.backendDOMNodeId ?? 500_000 + position),
+        actionSessionId: sessionId,
+        coordinateSpace: 'frame',
+      })));
+    }
     return merged;
+  }
+
+  descriptorFor(index) {
+    const descriptor = this.axIndex.get(String(index));
+    if (!descriptor) throw new Error(`unknown element index ${index}; call getAXState() first`);
+    return descriptor;
+  }
+
+  sendFor(descriptor, method, params = {}) {
+    if (descriptor.send) return descriptor.send(method, params);
+    return this.connection.send(method, params, descriptor.sessionId ?? this.sessionId);
   }
 
   /** backendNodeId -> DOM id, used for the `ID:` field. */
@@ -259,37 +342,34 @@ export class BrowserTab {
     return result?.value;
   }
 
-  backendFor(index) {
-    const backend = this.axIndex.get(String(index));
-    if (backend === undefined) {
-      throw new Error(`unknown element index ${index}; call getAXState() first`);
-    }
-    return backend;
-  }
-
   async centerOf(index) {
-    await this.connection.send('DOM.enable', {}, this.sessionId);
-    const { model } = await this.connection.send('DOM.getBoxModel', { backendNodeId: this.backendFor(index) }, this.sessionId);
+    const descriptor = this.descriptorFor(index);
+    await this.sendFor(descriptor, 'DOM.enable', {});
+    const { model } = await this.sendFor(descriptor, 'DOM.getBoxModel', { backendNodeId: descriptor.backendNodeId });
     const quad = model.content;
     return [(quad[0] + quad[2] + quad[4] + quad[6]) / 4, (quad[1] + quad[3] + quad[5] + quad[7]) / 4];
   }
 
   async focus(index) {
-    await this.connection.send('DOM.enable', {}, this.sessionId);
-    await this.connection.send('DOM.focus', { backendNodeId: this.backendFor(index) }, this.sessionId);
+    const descriptor = this.descriptorFor(index);
+    await this.sendFor(descriptor, 'DOM.enable', {});
+    await this.sendFor(descriptor, 'DOM.focus', { backendNodeId: descriptor.backendNodeId });
+    return descriptor;
   }
 
   async resolveObject(index) {
-    await this.connection.send('DOM.enable', {}, this.sessionId);
-    const { object } = await this.connection.send('DOM.resolveNode', { backendNodeId: this.backendFor(index) }, this.sessionId);
+    const descriptor = this.descriptorFor(index);
+    await this.sendFor(descriptor, 'DOM.enable', {});
+    const { object } = await this.sendFor(descriptor, 'DOM.resolveNode', { backendNodeId: descriptor.backendNodeId });
     return object.objectId;
   }
 
   async callOn(index, functionDeclaration, args = []) {
     const objectId = await this.resolveObject(index);
-    const { result, exceptionDetails } = await this.connection.send('Runtime.callFunctionOn', {
+    const descriptor = this.descriptorFor(index);
+    const { result, exceptionDetails } = await this.sendFor(descriptor, 'Runtime.callFunctionOn', {
       objectId, functionDeclaration, arguments: args.map((value) => ({ value })), returnByValue: true,
-    }, this.sessionId);
+    });
     if (exceptionDetails) throw new Error(exceptionDetails.text ?? 'Runtime.callFunctionOn failed');
     return result?.value;
   }
@@ -357,27 +437,37 @@ export class BrowserTab {
   }
 
   async click(target, { mouseButton = 'left', clickCount = 1 } = {}) {
+    const descriptor = Array.isArray(target) ? null : this.descriptorFor(target);
     const [x, y] = Array.isArray(target) ? target : await this.centerOf(target);
     for (const type of ['mousePressed', 'mouseReleased']) {
-      await this.connection.send('Input.dispatchMouseEvent', {
+      await (descriptor ? this.sendFor(descriptor, 'Input.dispatchMouseEvent', {
         type, x, y, button: mouseButton, clickCount,
-      }, this.sessionId);
+      }) : this.connection.send('Input.dispatchMouseEvent', {
+        type, x, y, button: mouseButton, clickCount,
+      }, this.sessionId));
     }
   }
 
   async scroll(target, direction, distance = 1) {
+    const descriptor = Array.isArray(target) ? null : this.descriptorFor(target);
     const [x, y] = Array.isArray(target) ? target : await this.centerOf(target);
     const delta = Math.max(1, Number(distance)) * 120;
-    await this.connection.send('Input.dispatchMouseEvent', {
+    const params = {
       type: 'mouseWheel', x, y,
       deltaX: direction === 'left' ? -delta : direction === 'right' ? delta : 0,
       deltaY: direction === 'up' ? -delta : delta,
-    }, this.sessionId);
+    };
+    if (descriptor) await this.sendFor(descriptor, 'Input.dispatchMouseEvent', params);
+    else await this.connection.send('Input.dispatchMouseEvent', params, this.sessionId);
   }
 
   async typeText(index, text) {
     if (typeof index !== 'number') { text = index; index = null; }
-    if (index !== null) await this.focus(index);
+    if (index !== null) {
+      const descriptor = await this.focus(index);
+      await this.sendFor(descriptor, 'Input.insertText', { text });
+      return;
+    }
     await this.connection.send('Input.insertText', { text }, this.sessionId);
   }
 
@@ -403,10 +493,12 @@ export class BrowserTab {
 
   async pressKey(index, key) {
     if (typeof index !== 'number') { key = index; index = null; }
-    if (index !== null) await this.focus(index);
+    let descriptor = null;
+    if (index !== null) descriptor = await this.focus(index);
     const spec = parseKeyChord(key);
     for (const type of ['keyDown', 'keyUp']) {
-      await this.connection.send('Input.dispatchKeyEvent', { type, ...spec }, this.sessionId);
+      if (descriptor) await this.sendFor(descriptor, 'Input.dispatchKeyEvent', { type, ...spec });
+      else await this.connection.send('Input.dispatchKeyEvent', { type, ...spec }, this.sessionId);
     }
   }
 }

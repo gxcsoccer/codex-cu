@@ -90,10 +90,18 @@ Differences from native:
 element (`Page.getFrameTree` + `Accessibility.getFullAXTree({frameId})` +
 `DOM.getFrameOwner`), matching the original's per-frame merge. Frame nodes get a
 per-frame display-ID offset (base + backend id), so IDs stay stable and never
-collide with page ids; element-index clicks work inside iframes because CDP
-frame box models are page-relative (verified live). Frame ownership is still not
-annotated in the text, same as the original; `frameLocator` remains available on
-the Playwright backend.
+collide with page ids; element-index clicks work inside iframes.
+
+**Out-of-process iframes** (cross-site) are separate targets:
+- the CDP backend attaches at the browser level and tags each entry with the
+  child session;
+- the Playwright backend creates a per-frame CDP session and injects frame
+  providers, because a page session cannot attach those targets.
+
+Actions follow the entry's session and coordinate space (page-relative for
+in-process frames, frame-local for OOPIF); both are verified live. Frame
+ownership is still not annotated in the text, same as the original;
+`frameLocator` remains available on the Playwright backend.
 
 ## Playwright backend (closest to the original)
 

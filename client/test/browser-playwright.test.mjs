@@ -82,3 +82,35 @@ test('iframe content is visible in AX and clickable by index', { skip: !endpoint
     await provider.close();
   }
 });
+
+test('cross-origin iframe (OOPIF) AX merges and clicks', { skip: !endpoint }, async () => {
+  const inner = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end('<title>Inner</title><button id=in>Inner Button</button>');
+  });
+  const outer = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>Outer</title><iframe style="margin:20px" src="http://127.0.0.1:${inner.address().port}/"></iframe>`);
+  });
+  await new Promise((resolve) => inner.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => outer.listen(0, '0.0.0.0', resolve));
+  const provider = new PlaywrightBrowserProvider({ endpoint });
+  const browser = await provider.getBrowser();
+  try {
+    const tab = await browser.createTab(`http://localhost:${outer.address().port}/`);
+    await tab.page.waitForTimeout(400);
+    const frame = tab.page.frames()[1];
+    await frame.evaluate(() => document.getElementById('in').addEventListener('click', (event) => { event.target.textContent = 'Hit'; }));
+    const axes = await tab.getAXState();
+    assert.match(axes, /button Inner Button/);
+    const line = axes.split('\n').find((candidate) => candidate.includes('button Inner Button'));
+    const index = Number(line.trim().split(' ')[0]);
+    await tab.click(index);
+    assert.equal(await frame.locator('#in').textContent(), 'Hit');
+    await tab.close();
+  } finally {
+    await provider.close();
+    await new Promise((resolve) => inner.close(resolve));
+    await new Promise((resolve) => outer.close(resolve));
+  }
+});
