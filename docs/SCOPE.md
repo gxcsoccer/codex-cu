@@ -56,6 +56,8 @@ Playwright-cached **Chrome for Testing**; the service itself is unchanged.
 | Windows-specific `list_windows`/`get_window` | macOS client exposes no window-scoped bindings either |
 | Exact response schemas for `AppGetSkyshot`/`PerformAction` beyond consumed fields | not observable without an entitled peer |
 | Refetch error codes | messages observed, code `-10008` inferred |
+| Diff presentation variants | the service contains strings for cumulative diffs, inline `-` removals and a "There has been no change" message; the trigger conditions were not observable, so the summarized-diff form is always used |
+| AX invalidation monitor | internal to the original (`RefetchableSkyshotAXTree`); this implementation refetches on demand instead |
 
 ## How to judge completion
 
