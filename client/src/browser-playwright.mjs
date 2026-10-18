@@ -117,7 +117,7 @@ export class PlaywrightTab {
       // An out-of-process frame session is rooted at its own frame; an in-process
       // frame session is rooted at the page, which the page-session merge covers.
       if (!tree?.parentId) continue;
-      providers.push({ frameId: tree.id, send: (method, params) => session.send(method, params) });
+      providers.push({ frameId: tree.id, parentFrameId: tree.parentId, send: (method, params) => session.send(method, params) });
     }
     return providers;
   }

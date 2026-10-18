@@ -128,17 +128,19 @@ export class BrowserTab {
     this.status = null; // 'deliverable' | 'handoff'
     this.takeoverRequested = false;
     this.playwright = new PlaywrightAPI(this);
-    this.axIndex = new Map(); // AX nodeId -> backendDOMNodeId
+    this.axIndex = new Map(); // display id -> action descriptor
+    this.iframeSessions = new Map(); // targetId -> flattened session
   }
 
   async goto(url) {
     this.domIds = null;
+    this.iframeSessions.clear();
     await this.connection.send('Page.navigate', { url }, this.sessionId);
   }
 
   async back() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(-1) }, this.sessionId); }
   async forward() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(1) }, this.sessionId); }
-  async reload() { this.domIds = null; await this.connection.send('Page.reload', {}, this.sessionId); }
+  async reload() { this.domIds = null; this.iframeSessions.clear(); await this.connection.send('Page.reload', {}, this.sessionId); }
   async close() { await this.connection.send('Target.closeTarget', { targetId: this.id }); }
   async markDeliverable() { this.status = 'deliverable'; }
   async markHandoff() { this.status = 'handoff'; }
@@ -233,74 +235,100 @@ export class BrowserTab {
       byFrame.set(frame.id, { prefix, nodes });
     }
 
-    // Playwright exposes per-frame CDP sessions; the page session cannot attach
-    // out-of-process targets, so those are merged from frameProviders instead.
+    const entries = [];
     if (this.frameProviders) {
-      let providerIndex = 0;
+      // Playwright: per-frame sessions supplied by the tab.
       for (const provider of this.frameProviders) {
-        providerIndex += 1;
         let frameNodes;
         try { ({ nodes: frameNodes } = await provider.send('Accessibility.getFullAXTree')); } catch { continue; }
-        if (!frameNodes?.length) continue;
-        let ownerBackend;
-        try { ({ backendNodeId: ownerBackend } = await this.connection.send('DOM.getFrameOwner', { frameId: provider.frameId }, this.sessionId)); } catch { continue; }
-        const owner = merged.find((node) => node.backendDOMNodeId === ownerBackend);
-        if (!owner) continue;
-        const prefix = `p${providerIndex}:`;
-        const base = 200_000_000 * providerIndex;
-        merged.push(...frameNodes.map((node, position) => ({
-          ...node,
-          nodeId: `${prefix}${node.nodeId}`,
-          parentId: node.parentId ? `${prefix}${node.parentId}` : String(owner.nodeId),
-          displayId: base + (node.backendDOMNodeId ?? 500_000 + position),
-          actionSend: provider.send,
-          coordinateSpace: 'frame',
-        })));
+        if (frameNodes?.length) {
+          entries.push({ frameId: provider.frameId, parentFrameId: provider.parentFrameId, send: provider.send, nodes: frameNodes });
+        }
       }
-      return merged;
-    }
-
-    let targetInfos = [];
-    try { ({ targetInfos } = await this.connection.send('Target.getTargets')); } catch { /* no target list */ }
-    let oopif = 0;
-    for (const target of (targetInfos ?? []).filter((info) => info.type === 'iframe')) {
-      oopif += 1;
-      let sessionId = this.iframeSessions?.get(target.targetId);
-      if (!sessionId) {
+    } else {
+      // Raw CDP: attach every iframe target at the browser level.
+      let targetInfos = [];
+      try { ({ targetInfos } = await this.connection.send('Target.getTargets')); } catch { /* no target list */ }
+      for (const target of (targetInfos ?? []).filter((info) => info.type === 'iframe')) {
+        let sessionId = this.iframeSessions.get(target.targetId);
+        if (!sessionId) {
+          try {
+            ({ sessionId } = await this.connection.send('Target.attachToTarget', { targetId: target.targetId, flatten: true }));
+          } catch { continue; }
+          this.iframeSessions.set(target.targetId, sessionId);
+        }
+        let childFrameTree;
+        try { ({ frameTree: childFrameTree } = await this.connection.send('Page.getFrameTree', {}, sessionId)); } catch { continue; }
+        const child = childFrameTree?.frame;
+        if (!child?.id) continue;
+        let frameNodes;
         try {
-          // Attach at the browser level; page-session attach returns the parent
-          // frame instead of the out-of-process child.
-          ({ sessionId } = await this.connection.send('Target.attachToTarget', { targetId: target.targetId, flatten: true }));
+          await this.connection.send('Accessibility.enable', {}, sessionId);
+          ({ nodes: frameNodes } = await this.connection.send('Accessibility.getFullAXTree', {}, sessionId));
         } catch { continue; }
-        if (!this.iframeSessions) this.iframeSessions = new Map();
-        this.iframeSessions.set(target.targetId, sessionId);
+        if (!frameNodes?.length) continue;
+        entries.push({
+          frameId: child.id,
+          parentFrameId: child.parentId,
+          send: (method, params) => this.connection.send(method, params, sessionId),
+          nodes: frameNodes,
+        });
       }
-      let childFrameTree;
-      try { ({ frameTree: childFrameTree } = await this.connection.send('Page.getFrameTree', {}, sessionId)); } catch { continue; }
-      const frameId = childFrameTree?.frame?.id;
-      if (!frameId) continue;
-      let frameNodes;
-      try {
-        await this.connection.send('Accessibility.enable', {}, sessionId);
-        ({ nodes: frameNodes } = await this.connection.send('Accessibility.getFullAXTree', {}, sessionId));
-      } catch { continue; }
-      if (!frameNodes?.length) continue;
+    }
+    await this.mergeOutOfProcess(merged, merged.slice(0, pageNodes.length), entries, frameTree?.frame?.id);
+    return merged;
+  }
+
+  /**
+   * Nests out-of-process frame trees under their owner elements, parent frames
+   * first. Nested OOPIFs resolve their owner in the parent frame's session; the
+   * page session cannot see them.
+   */
+  async mergeOutOfProcess(merged, pagePool, entries, pageRootId) {
+    if (entries.length === 0) return;
+    const byId = new Map(entries.map((entry) => [entry.frameId, entry]));
+    const depth = (entry) => {
+      let levels = 0;
+      let current = entry;
+      const seen = new Set();
+      while (current?.parentFrameId && current.parentFrameId !== pageRootId
+             && byId.has(current.parentFrameId) && !seen.has(current.parentFrameId)) {
+        seen.add(current.parentFrameId);
+        current = byId.get(current.parentFrameId);
+        levels += 1;
+      }
+      return levels;
+    };
+    entries.sort((a, b) => depth(a) - depth(b));
+    const mergedById = new Map();
+    let index = 0;
+    for (const entry of entries) {
+      index += 1;
+      const parent = entry.parentFrameId && entry.parentFrameId !== pageRootId ? byId.get(entry.parentFrameId) : null;
       let ownerBackend;
-      try { ({ backendNodeId: ownerBackend } = await this.connection.send('DOM.getFrameOwner', { frameId }, this.sessionId)); } catch { continue; }
-      const owner = merged.find((node) => node.backendDOMNodeId === ownerBackend);
+      try {
+        const response = parent
+          ? await parent.send('DOM.getFrameOwner', { frameId: entry.frameId })
+          : await this.connection.send('DOM.getFrameOwner', { frameId: entry.frameId }, this.sessionId);
+        ownerBackend = response.backendNodeId;
+      } catch { continue; }
+      const pool = parent ? mergedById.get(parent.frameId)?.nodes : pagePool;
+      const owner = pool?.find((node) => node.backendDOMNodeId === ownerBackend);
       if (!owner) continue;
-      const prefix = `o${oopif}:`;
-      const base = 100_000_000 * oopif;
-      merged.push(...frameNodes.map((node, position) => ({
+      const ownerId = parent ? `${mergedById.get(parent.frameId).prefix}${owner.nodeId}` : String(owner.nodeId);
+      const prefix = `o${index}:`;
+      const base = 1_000_000_000 * index;
+      const nodes = entry.nodes.map((node, position) => ({
         ...node,
         nodeId: `${prefix}${node.nodeId}`,
-        parentId: node.parentId ? `${prefix}${node.parentId}` : String(owner.nodeId),
+        parentId: node.parentId ? `${prefix}${node.parentId}` : ownerId,
         displayId: base + (node.backendDOMNodeId ?? 500_000 + position),
-        actionSessionId: sessionId,
+        actionSend: entry.send,
         coordinateSpace: 'frame',
-      })));
+      }));
+      mergedById.set(entry.frameId, { prefix, nodes });
+      merged.push(...nodes);
     }
-    return merged;
   }
 
   descriptorFor(index) {

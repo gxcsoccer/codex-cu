@@ -114,3 +114,41 @@ test('cross-origin iframe (OOPIF) AX merges and clicks', { skip: !endpoint }, as
     await new Promise((resolve) => outer.close(resolve));
   }
 });
+
+test('nested cross-site iframes merge recursively', { skip: !endpoint }, async () => {
+  const deep = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end('<title>Deep</title><button id=deep>Deep Button</button>');
+  });
+  const middle = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>Middle</title><iframe src="http://localhost:${deep.address().port}/"></iframe>`);
+  });
+  const outer = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>Outer</title><iframe src="http://127.0.0.1:${middle.address().port}/"></iframe>`);
+  });
+  await new Promise((resolve) => deep.listen(0, '0.0.0.0', resolve));
+  await new Promise((resolve) => middle.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => outer.listen(0, '0.0.0.0', resolve));
+  const provider = new PlaywrightBrowserProvider({ endpoint });
+  const browser = await provider.getBrowser();
+  try {
+    const tab = await browser.createTab(`http://localhost:${outer.address().port}/`);
+    await tab.page.waitForTimeout(700);
+    const deepFrame = tab.page.frames().find((frame) => frame.url().includes(String(deep.address().port)));
+    await deepFrame.evaluate(() => document.getElementById('deep').addEventListener('click', (event) => { event.target.textContent = 'Hit'; }));
+    const axes = await tab.getAXState();
+    assert.match(axes, /button Deep Button/);
+    const line = axes.split('\n').find((candidate) => candidate.includes('button Deep Button'));
+    const index = Number(line.trim().split(' ')[0]);
+    await tab.click(index);
+    assert.equal(await deepFrame.locator('#deep').textContent(), 'Hit');
+    await tab.close();
+  } finally {
+    await provider.close();
+    await new Promise((resolve) => deep.close(resolve));
+    await new Promise((resolve) => middle.close(resolve));
+    await new Promise((resolve) => outer.close(resolve));
+  }
+});

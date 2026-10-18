@@ -98,8 +98,11 @@ collide with page ids; element-index clicks work inside iframes.
 - the Playwright backend creates a per-frame CDP session and injects frame
   providers, because a page session cannot attach those targets.
 
-Actions follow the entry's session and coordinate space (page-relative for
-in-process frames, frame-local for OOPIF); both are verified live. Frame
+Nested OOPIFs resolve their owner in the **parent frame's** session (the page
+session cannot see them); entries are merged parent-first. Actions follow the
+entry's session and coordinate space (page-relative for in-process frames,
+frame-local for OOPIF); both are verified live, including a two-level
+cross-site nest. Frame
 ownership is still not annotated in the text, same as the original;
 `frameLocator` remains available on the Playwright backend.
 
