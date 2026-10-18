@@ -92,6 +92,10 @@ export class BrowserTab {
     return new Uint8Array(Buffer.from(data, 'base64'));
   }
 
+  async performSecondaryAction() {
+    throw new Error('performSecondaryAction is not supported for browser tabs (no CDP equivalent)');
+  }
+
   async getAXStateAndScreenshot() {
     return { state: await this.getAXState(), screenshot: await this.getScreenshot() };
   }

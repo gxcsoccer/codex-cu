@@ -101,6 +101,7 @@ test('creates a tab and drives it', async () => {
   await tab.pressKey(3, 'Enter');
   assert.equal(connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').length, 2);
   await assert.rejects(() => tab.pressKey('Hyper+Space'), /unsupported browser key/);
+  await assert.rejects(() => tab.performSecondaryAction(3, 'Raise'), /not supported for browser tabs/);
 });
 
 test('element-index input requires a fresh AX state', async () => {

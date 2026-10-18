@@ -56,15 +56,16 @@ The Chrome installed on the development machine is a 367 KB stub that starts a
 custom `aha-runtime`; its `/json/version` reports `Browser: aha-runtime` and no
 `webSocketDebuggerUrl`, so it cannot serve as a CDP browser. Live browser
 verification therefore has not been run here; the provider is covered by unit
-tests with a fake CDP connection, and the WebSocket transport has its own tests
-(`client/test/cdp.test.mjs`).
+tests with a fake CDP connection, and `client/test/cdp-live.test.mjs` runs the
+whole browser surface against a real WebSocket CDP server implementation
+(handshake, framed JSON-RPC, sessions).
 
 ## Gaps vs the original
 
 - **Element indices come from the latest `getAXState()`**; stale indices raise an
   explicit error instead of clicking the wrong node.
 - `performSecondaryAction` is not implemented for tabs (CDP has no direct
-  equivalent of an accessibility secondary action).
+  equivalent of an accessibility secondary action) and throws explicitly.
 - `paste` is implemented as focus + `Input.insertText`; it does not write the
   system clipboard.
 - The original can also drive `iab` (in-app browser), extension-backed tabs and
