@@ -3,14 +3,14 @@ import Foundation
 @testable import CodexCUCore
 
 final class FakeAudioRecorder: AudioRecording {
-  var started: [Int] = []
+  var starts = 0
   var stops = 0
   var stopURL = URL(fileURLWithPath: "/tmp/fake-audio.wav")
   var failure: Error?
 
-  func start(maxDurationMilliseconds: Int) throws {
+  func start() throws {
     if let failure { throw failure }
-    started.append(maxDurationMilliseconds)
+    starts += 1
   }
 
   func stop() throws -> URL {
@@ -33,16 +33,10 @@ private func handlers(recorder: AudioRecording?) -> DefaultHandlers {
   )
 }
 
-@Test func startUsesTheRequestedDuration() throws {
+@Test func startInvokesTheRecorder() throws {
   let recorder = FakeAudioRecorder()
   _ = try handlers(recorder: recorder).startAudioRecording(["maxDurationMilliseconds": 1500])
-  #expect(recorder.started == [1500])
-}
-
-@Test func startDefaultsToSixtySeconds() throws {
-  let recorder = FakeAudioRecorder()
-  _ = try handlers(recorder: recorder).startAudioRecording([:])
-  #expect(recorder.started == [60_000])
+  #expect(recorder.starts == 1)
 }
 
 @Test func durationsAreValidated() {
@@ -53,9 +47,9 @@ private func handlers(recorder: AudioRecording?) -> DefaultHandlers {
   }
 }
 
-@Test func doubleStartAndStopWithoutStartAreRejected() throws {
+@Test func doubleStartIsRejected() throws {
   let h = handlers(recorder: FakeAudioRecorder())
-  _ = try h.startAudioRecording([:])
+  _ = try h.startAudioRecording(["maxDurationMilliseconds": 60_000])
   #expect(throws: ServiceError.self) { _ = try h.startAudioRecording([:]) }
 }
 
@@ -66,10 +60,22 @@ private func handlers(recorder: AudioRecording?) -> DefaultHandlers {
 @Test func stopReturnsAFileURL() throws {
   let recorder = FakeAudioRecorder()
   let h = handlers(recorder: recorder)
-  _ = try h.startAudioRecording([:])
+  _ = try h.startAudioRecording(["maxDurationMilliseconds": 60_000])
   let result = try h.stopAudioRecording()
   #expect(result["url"] as? String == "file:///tmp/fake-audio.wav")
   #expect(recorder.stops == 1)
+}
+
+@Test func autoStopThenLateStopReturnsTheSameFile() async throws {
+  let recorder = FakeAudioRecorder()
+  let h = handlers(recorder: recorder)
+  _ = try h.startAudioRecording(["maxDurationMilliseconds": 100])
+  try await Task.sleep(nanoseconds: 350_000_000)
+  let late = try h.stopAudioRecording()
+  #expect(late["url"] as? String == "file:///tmp/fake-audio.wav")
+  #expect(recorder.stops == 1)
+  let again = try h.stopAudioRecording()
+  #expect(again["url"] as? String == "file:///tmp/fake-audio.wav")
 }
 
 @Test func noRecorderMeansUnsupported() {

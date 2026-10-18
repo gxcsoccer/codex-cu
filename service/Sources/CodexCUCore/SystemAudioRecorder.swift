@@ -13,14 +13,13 @@ public final class SystemAudioRecorder: NSObject, AudioRecording, SCStreamOutput
   private let lock = NSLock()
   private var stream: SCStream?
   private var writer: WAVWriter?
-  private var timer: DispatchSourceTimer?
 
   public init(outputDirectory: URL? = nil) {
     self.outputDirectory = outputDirectory ?? FileManager.default.temporaryDirectory
       .appendingPathComponent("codex-cu-audio", isDirectory: true)
   }
 
-  public func start(maxDurationMilliseconds: Int) throws {
+  public func start() throws {
     lock.lock()
     let alreadyRunning = stream != nil
     lock.unlock()
@@ -54,30 +53,19 @@ public final class SystemAudioRecorder: NSObject, AudioRecording, SCStreamOutput
     self.stream = stream
     self.writer = writer
     lock.unlock()
-
-    let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
-    timer.schedule(deadline: .now() + .milliseconds(max(maxDurationMilliseconds, 100)))
-    timer.setEventHandler { [weak self] in _ = try? self?.stop() }
-    timer.resume()
-    lock.lock()
-    self.timer = timer
-    lock.unlock()
   }
 
   public func stop() throws -> URL {
     lock.lock()
     let activeStream = stream
     let activeWriter = writer
-    let activeTimer = timer
     stream = nil
     writer = nil
-    timer = nil
     lock.unlock()
 
     guard let activeStream, let activeWriter else {
       throw ServiceError(.unhandledEvent, "audio recording is not active")
     }
-    activeTimer?.cancel()
     try Self.stopCapture(activeStream)
     let url = try activeWriter.finish()
     return url

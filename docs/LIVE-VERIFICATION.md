@@ -44,6 +44,7 @@ Add `--browser http://127.0.0.1:9222` if a Chrome is running with
 | `getAppState` | text contains `Window:` | app not running (`-10007`) or no Accessibility (`-10009`) |
 | `screenshot` | `file://` PNG starts with `89 50` | no skyshot returned |
 | `audio` | WAV is `RIFF/WAVE`, 24000 Hz, 2 ch | Screen Recording missing (`-10009`) |
+| `screenshot` | needs `getAppState` first; with Accessibility granted the `file://` PNG is checked | — |
 | `browser` | AX tree contains the data-URL heading | no `--browser` endpoint |
 
 `FAIL` is a real defect; `SKIP` means the environment did not provide the

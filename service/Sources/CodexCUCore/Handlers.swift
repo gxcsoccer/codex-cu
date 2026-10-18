@@ -19,6 +19,8 @@ public final class DefaultHandlers: ServiceHandlers {
   private let instructions: [String: String]
   private let audioRecorder: AudioRecording?
   private var audioActive = false
+  private var lastAudioURL: URL?
+  private var audioTimer: DispatchSourceTimer?
   private let audioLock = NSLock()
 
   public init(approvalsURL: URL? = nil,
@@ -174,23 +176,51 @@ public final class DefaultHandlers: ServiceHandlers {
     guard !audioActive else {
       throw ServiceError(.unhandledEvent, "audio recording is already active")
     }
-    try audioRecorder.start(maxDurationMilliseconds: duration)
+    try audioRecorder.start()
     audioActive = true
+    lastAudioURL = nil
+    let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .utility))
+    timer.schedule(deadline: .now() + .milliseconds(duration))
+    timer.setEventHandler { [weak self] in _ = try? self?.finishAudioRecording() }
+    timer.resume()
+    audioTimer = timer
     return [:]
   }
 
   public func stopAudioRecording() throws -> [String: Any] {
-    guard let audioRecorder else {
+    guard audioRecorder != nil else {
       throw ServiceError(.unhandledEvent, "audio recording is not implemented")
     }
+    if let url = try finishAudioRecording() {
+      return ["url": url.absoluteString]
+    }
     audioLock.lock()
-    defer { audioLock.unlock() }
-    guard audioActive else {
+    let previous = lastAudioURL
+    audioLock.unlock()
+    guard let previous else {
       throw ServiceError(.unhandledEvent, "audio recording is not active")
     }
-    let url = try audioRecorder.stop()
+    // A late stop after the auto-stop timer still returns the finished file.
+    return ["url": previous.absoluteString]
+  }
+
+  @discardableResult
+  private func finishAudioRecording() throws -> URL? {
+    audioLock.lock()
+    guard audioActive, let audioRecorder else {
+      audioLock.unlock()
+      return nil
+    }
     audioActive = false
-    return ["url": url.absoluteString]
+    audioTimer?.cancel()
+    audioTimer = nil
+    audioLock.unlock()
+
+    let url = try audioRecorder.stop()
+    audioLock.lock()
+    lastAudioURL = url
+    audioLock.unlock()
+    return url
   }
 
   public func performAction(_ app: String, action: [String: Any]) throws -> [String: Any] {

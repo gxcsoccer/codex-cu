@@ -23,8 +23,10 @@ stop_audio_recording(): Promise<{ filepath, bytes, data_url }>
    `channelCount = 2`.
 3. `SCStream` audio output → `PCMConverter` (Float32/Int16, planar or
    interleaved → interleaved PCM16) → `WAVWriter`.
-4. A timer stops the recording at `maxDurationMilliseconds`.
-5. `stop` returns `{url}` pointing at the WAV.
+4. The handler owns a timer that stops the recording at
+   `maxDurationMilliseconds`; the finished URL is retained.
+5. `stop` returns `{url}` pointing at the WAV. A stop that arrives **after** the
+   auto-stop still returns the finished file (it does not fail as "not active").
 
 Enable it with `--audio`; without the flag the service keeps returning `-10004`
 so existing behavior is unchanged.
@@ -46,4 +48,5 @@ permission granted to the service binary (`docs/INSTALL.md`).
 - `PCMConverter` interleaved Float32 → PCM16 with clamping.
 - Session rules (duration validation, double start, stop without start).
 - Wire-level denial path (`--audio`, no TCC).
-- Not covered: actual capture (blocked by TCC on this machine).
+- **Live capture verified**: `live-check --audio` records a 24 kHz stereo WAV
+  (26,924 bytes in the recorded run) once Screen Recording is granted.

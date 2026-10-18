@@ -3,9 +3,9 @@ import Foundation
 /// Recording lifecycle. The concrete recorder is injected so the protocol and
 /// session rules can be tested without ScreenCaptureKit or TCC.
 public protocol AudioRecording {
-  /// Starts loopback (system audio) capture, automatically stopping after the
-  /// requested duration.
-  func start(maxDurationMilliseconds: Int) throws
+  /// Starts loopback (system audio) capture. The session timer lives in the
+  /// handler so auto-stop and manual stop share one state machine.
+  func start() throws
   /// Stops capture and returns a local WAV file URL.
   func stop() throws -> URL
 }
