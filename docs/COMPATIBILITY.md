@@ -16,6 +16,9 @@ binary-identical internals.
 | `PerformAction` (click/drag/scroll/type/press/setValue/selectText/secondary) | yes | yes | `service/Tests/.../ActionTests.swift` (AX-first, CGEvent fallback) |
 | App policy / approvals | yes | partial (JSON allowlist, default allow) | `policyDenialBlocksActions` |
 | Error codes -10000…-10020 | yes | yes | `client/src/errors.mjs`, tests |
+| Deadline enforcement | unknown | yes (inferred code) | `expiredDeadlinesAreRejected` |
+| Oversized / malformed frames | rejects (client limit) | closes the connection | `readerRejectsOversizedFrames`, integration test |
+| Concurrent clients | unknown | yes (per-connection queues) | `serves concurrent clients` |
 | Diffing of AX trees | yes | approximate (`~`/`+`/removed ranges) | `AXDiffTests` |
 | Audio recording | yes | out of scope (round 1) | — |
 

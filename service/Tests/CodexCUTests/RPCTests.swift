@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CodexCUCore
 
@@ -63,4 +64,30 @@ struct FakeHandlers: ServiceHandlers {
 
 @Test func notificationsAreIgnored() {
   #expect(RPC.handle(["jsonrpc": "2.0", "method": "ping"], handlers: FakeHandlers()) == nil)
+}
+
+@Test func expiredDeadlinesAreRejected() {
+  let response = RPC.handle([
+    "jsonrpc": "2.0", "id": 9, "method": "request",
+    "params": [
+      "clientApiVersion": apiVersion,
+      "deadlineUnixMilliseconds": 1,
+      "requestType": "ComputerUseIPCListAppsRequest",
+      "request": [:],
+    ],
+  ], handlers: FakeHandlers())
+  #expect((response?["error"] as? [String: Any])?["code"] as? Int == ServiceErrorCode.couldNotGetRequestData.rawValue)
+}
+
+@Test func futureDeadlinesPassThrough() {
+  let response = RPC.handle([
+    "jsonrpc": "2.0", "id": 10, "method": "request",
+    "params": [
+      "clientApiVersion": apiVersion,
+      "deadlineUnixMilliseconds": Date().timeIntervalSince1970 * 1000 + 60_000,
+      "requestType": "ComputerUseIPCListAppsRequest",
+      "request": [:],
+    ],
+  ], handlers: FakeHandlers())
+  #expect(response?["result"] != nil)
 }

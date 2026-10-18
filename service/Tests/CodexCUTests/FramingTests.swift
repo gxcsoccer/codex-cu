@@ -24,3 +24,26 @@ import Foundation
   #expect((try reader.nextFrame() as? [String: Int])?["n"] == 1)
   #expect((try reader.nextFrame() as? [String: Int])?["n"] == 2)
 }
+
+@Test func readerRejectsOversizedFrames() throws {
+  let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: url) }
+  var header = Data()
+  var length = UInt32(Framing.maxFrameBytes + 1).littleEndian
+  withUnsafeBytes(of: &length) { header.append(contentsOf: $0) }
+  try header.write(to: url)
+  let reader = FrameReader(handle: try FileHandle(forReadingFrom: url))
+  #expect(throws: ServiceError.self) { _ = try reader.nextFrame() }
+}
+
+@Test func readerRejectsInvalidJSON() throws {
+  let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: url) }
+  let body = Data("not json".utf8)
+  var header = Data()
+  var length = UInt32(body.count).littleEndian
+  withUnsafeBytes(of: &length) { header.append(contentsOf: $0) }
+  try (header + body).write(to: url)
+  let reader = FrameReader(handle: try FileHandle(forReadingFrom: url))
+  #expect(throws: ServiceError.self) { _ = try reader.nextFrame() }
+}

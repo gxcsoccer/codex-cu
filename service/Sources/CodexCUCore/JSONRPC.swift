@@ -37,6 +37,10 @@ public enum RPC {
         return errorResponse(id: id, code: .incompatibleClientVersion,
                              message: "API version mismatch: client=\(client) server=\(apiVersion)")
       }
+      if let deadline = deadlineMillis(params["deadlineUnixMilliseconds"]),
+         deadline < Date().timeIntervalSince1970 * 1000 {
+        return errorResponse(id: id, code: .couldNotGetRequestData, message: "deadline exceeded")
+      }
       let request = params["request"] as? [String: Any] ?? [:]
       do {
         let result = try dispatch(requestType: requestType, request: request, handlers: handlers)
@@ -76,6 +80,13 @@ public enum RPC {
     default:
       throw ServiceError(.couldNotResolveRequestType, "unknown requestType: \(requestType)")
     }
+  }
+
+  static func deadlineMillis(_ value: Any?) -> Double? {
+    if let number = value as? NSNumber { return number.doubleValue }
+    if let double = value as? Double { return double }
+    if let int = value as? Int { return Double(int) }
+    return nil
   }
 
   static func errorResponse(id: Any?, code: ServiceErrorCode, message: String) -> [String: Any] {

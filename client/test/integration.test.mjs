@@ -4,9 +4,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { Client } from '../src/client.mjs';
 import { CodexCuError } from '../src/errors.mjs';
+import { MAX_FRAME_BYTES } from '../src/framing.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const binary = path.resolve(here, '../../service/.build/debug/CodexCU');
@@ -51,4 +53,62 @@ test('client and Swift service interoperate over the real socket', { skip: !avai
     fs.rmSync(dir, { recursive: true, force: true });
   }
   assert.equal(stderr, '');
+});
+
+async function withService(socketPath, fn) {
+  const child = spawn(binary, ['--socket', socketPath], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let stderr = '';
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  try {
+    await waitForSocket(socketPath);
+    return await fn(child, () => stderr);
+  } finally {
+    child.kill('SIGTERM');
+    await new Promise((resolve) => child.once('exit', resolve));
+  }
+}
+
+test('serves concurrent clients', { skip: !available }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-conc-'));
+  const socketPath = path.join(dir, 'cu.sock');
+  try {
+    await withService(socketPath, async () => {
+      const first = new Client({ socketPath, timeoutMs: 5000 });
+      const second = new Client({ socketPath, timeoutMs: 5000 });
+      try {
+        const [a, b] = await Promise.all([first.listApps(), second.listApps()]);
+        assert.ok(Array.isArray(a.apps));
+        assert.ok(Array.isArray(b.apps));
+      } finally {
+        first.close();
+        second.close();
+      }
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('closes the connection on an oversized frame', { skip: !available }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-big-'));
+  const socketPath = path.join(dir, 'cu.sock');
+  try {
+    await withService(socketPath, async () => {
+      const socket = net.createConnection({ path: socketPath });
+      await new Promise((resolve, reject) => {
+        socket.once('connect', resolve);
+        socket.once('error', reject);
+      });
+      const header = Buffer.alloc(4);
+      header.writeUInt32LE(MAX_FRAME_BYTES + 1, 0);
+      socket.write(header);
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('server kept the connection open')), 2000);
+        socket.once('close', () => { clearTimeout(timer); resolve(); });
+        socket.once('error', () => { clearTimeout(timer); resolve(); });
+      });
+    });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -22,7 +22,8 @@ on a response.
 ```
 
 - Maximum frame size: 8 MiB (original client constant) [observed]. Frames larger
-  than the limit are a protocol error; the connection is closed.
+  than the limit are a protocol error; the connection is closed. The same applies
+  to malformed JSON bodies.
 - One JSON document per frame. No newline terminator.
 
 ## JSON-RPC subset
@@ -65,6 +66,10 @@ The client rejects a mismatch between `serverApiVersion` and its own version
   (the original client fills it from `nodeRepl.requestMeta["x-codex-turn-metadata"]`).
 - `deadlineUnixMilliseconds` is `Date.now() + timeoutSeconds * 1000`.
 - `requestType` selects the payload schema.
+- An expired deadline is rejected by this implementation with
+  `-10001 couldNotGetRequestData` / `"deadline exceeded"`. Whether the original
+  enforces it server-side is **[inferred]**; the field is always sent by the
+  client, so ignoring it would diverge on slow requests.
 
 ### Response validation
 
