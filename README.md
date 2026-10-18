@@ -9,6 +9,14 @@ protocol as the original.
 > tree diffing are implemented and tested; the parity harness against Codex is
 > next. See `docs/COMPATIBILITY.md`.
 
+## Read this first
+
+- [docs/REPORT.md](docs/REPORT.md) — what the original is, how it was reconstructed,
+  and the fidelity assessment.
+- [docs/CONFORMANCE.md](docs/CONFORMANCE.md) — per-feature implementation and test
+  evidence.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md) — wire format.
+
 ## Why
 
 The original is a closed-source Swift service (`SkyComputerUseService`) driven by
@@ -89,6 +97,8 @@ See `docs/INSTALL.md`.
 ## Tests
 
 ```bash
+scripts/verify.sh        # build + every suite (Swift, Node, integration)
+
 npm test                 # protocol + client (mock server, no permissions)
 npm run build:service    # swift build
 npm run test:integration # client <-> real Swift service over a Unix socket
