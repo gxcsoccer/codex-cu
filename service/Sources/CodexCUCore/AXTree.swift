@@ -13,9 +13,15 @@ public enum AXTree {
     public let depth: Int
   }
 
-  public static func snapshot(pid: pid_t, maxDepth: Int = 8, maxNodes: Int = 2000) throws -> [Node] {
+  public struct Snapshot {
+    public let nodes: [Node]
+    public let elements: [Int: AXUIElement]
+  }
+
+  public static func snapshot(pid: pid_t, maxDepth: Int = 8, maxNodes: Int = 2000) throws -> Snapshot {
     let app = AXUIElementCreateApplication(pid)
     var nodes: [Node] = []
+    var elements: [Int: AXUIElement] = [:]
     var counter = 0
 
     func attribute(_ element: AXUIElement, _ name: String) -> AnyObject? {
@@ -29,7 +35,9 @@ public enum AXTree {
       let role = attribute(element, kAXRoleAttribute) as? String ?? "AXUnknown"
       let title = attribute(element, kAXTitleAttribute) as? String ?? ""
       let value = attribute(element, kAXValueAttribute) as? String ?? ""
-      nodes.append(Node(id: counter, role: role, title: title, value: value, depth: depth))
+      let id = counter
+      nodes.append(Node(id: id, role: role, title: title, value: value, depth: depth))
+      elements[id] = element
       counter += 1
       if let children = attribute(element, kAXChildrenAttribute) as? [AXUIElement] {
         for child in children { walk(child, depth: depth + 1) }
@@ -37,7 +45,7 @@ public enum AXTree {
     }
 
     walk(app, depth: 0)
-    return nodes
+    return Snapshot(nodes: nodes, elements: elements)
   }
 
   public static func render(_ nodes: [Node]) -> String {
