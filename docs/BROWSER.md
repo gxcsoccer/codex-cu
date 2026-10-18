@@ -65,6 +65,21 @@ tests with a fake CDP connection, and `client/test/cdp-live.test.mjs` runs the
 whole browser surface against a real WebSocket CDP server implementation
 (handshake, framed JSON-RPC, sessions).
 
+## Accessibility text
+
+`getAXState()` emits the same layout as the native service (the browser WASM
+contains the same format strings): indented tree lines with role, name, states,
+`Description:`/`URL:`/`Value:`, and on subsequent observations a diff with the
+browser-specific header, `Removed element IDs:` ranges, `~\t`/`+\t` lines and the
+`Selected:` block plus note.
+
+Differences from native:
+
+- the diff header has no `for Window: "..."` part (there is no window);
+- display roles are CDP role names (`button`, `textbox`, `StaticText`) rather
+  than localized macOS role descriptions;
+- `ID:`/`Secondary Actions:` are not available from CDP and are omitted.
+
 ## Playwright backend (closest to the original)
 
 The original stack is Playwright + WASM AX. `PlaywrightBrowserProvider` uses the

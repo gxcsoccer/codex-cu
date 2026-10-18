@@ -57,7 +57,7 @@ test('creates a tab and drives it', async () => {
     'Accessibility.getFullAXTree': { nodes: [
       { nodeId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Example' } },
       { nodeId: '2', backendDOMNodeId: 102, ignored: true, role: { value: 'generic' }, name: { value: '' } },
-      { nodeId: '3', backendDOMNodeId: 103, ignored: false, role: { value: 'button' }, name: { value: 'Go' } },
+      { nodeId: '3', parentId: '1', backendDOMNodeId: 103, ignored: false, role: { value: 'button' }, name: { value: 'Go' } },
     ] },
     'DOM.getBoxModel': { model: { content: [0, 0, 100, 0, 100, 50, 0, 50] } },
     'DOM.resolveNode': { object: { objectId: 'O1' } },
@@ -69,7 +69,7 @@ test('creates a tab and drives it', async () => {
   const tab = await browser.createTab('https://new.test/');
   assert.equal(tab.id, 'NEW');
 
-  assert.equal(await tab.getAXState(), '\t1 RootWebArea Example\n\t3 button Go');
+  assert.equal(await tab.getAXState(), '1 RootWebArea Example\n\t3 button Go');
   assert.deepEqual([...(await tab.getScreenshot())], [0x89, 0x50]);
 
   await tab.click([10, 20]);
@@ -157,7 +157,7 @@ test('reports non-browser CDP endpoints clearly', async () => {
 });
 
 test('formatAXTree skips ignored nodes', () => {
-  assert.equal(formatAXTree([{ nodeId: 9, ignored: false, role: { value: 'button' }, name: { value: 'OK' } }]), '\t9 button OK');
+  assert.equal(formatAXTree([{ nodeId: 9, ignored: false, role: { value: 'button' }, name: { value: 'OK' } }]), '9 button OK');
 });
 
 test('selectText forwards prefix and suffix to the page script', async () => {

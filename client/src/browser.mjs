@@ -2,6 +2,7 @@
 // (`listBrowsers`, `getTab`, `createBrowserTab`, `listTabs`, Tab actions) using
 // Chrome's DevTools Protocol instead of the original's Playwright/WASM stack.
 import { CdpConnection } from './cdp.mjs';
+import { buildAXEntries, formatEntries, renderAXDiff, formatAXTree } from './ax-format.mjs';
 
 const NAMED_KEYS = {
   enter: { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 },
@@ -116,6 +117,8 @@ export class PlaywrightAPI {
   }
 }
 
+export { formatAXTree };
+
 export class BrowserTab {
   constructor({ connection, targetId, sessionId, info = {} }) {
     this.connection = connection;
@@ -147,7 +150,7 @@ export class BrowserTab {
     return entry.id;
   }
 
-  async getAXState() {
+  async getAXState({ disableDiff = false } = {}) {
     await this.connection.send('Accessibility.enable', {}, this.sessionId);
     const { nodes } = await this.connection.send('Accessibility.getFullAXTree', {}, this.sessionId);
     this.axIndex = new Map(
@@ -155,7 +158,14 @@ export class BrowserTab {
         .filter((node) => node.backendDOMNodeId !== undefined)
         .map((node) => [String(node.nodeId), node.backendDOMNodeId]),
     );
-    return formatAXTree(nodes);
+    const entries = buildAXEntries(nodes);
+    if (!disableDiff && this.previousAX) {
+      const text = renderAXDiff(this.previousAX, entries);
+      this.previousAX = entries;
+      return text;
+    }
+    this.previousAX = entries;
+    return formatEntries(entries);
   }
 
   async evaluate(expression) {
@@ -406,14 +416,4 @@ export class CdpBrowserProvider {
   }
 }
 
-export function formatAXTree(nodes) {
-  const lines = [];
-  for (const node of nodes) {
-    if (node.ignored) continue;
-    const role = node.role?.value ?? 'unknown';
-    const name = node.name?.value ?? '';
-    const id = node.nodeId;
-    lines.push(`\t${id} ${role}${name ? ` ${name}` : ''}`);
-  }
-  return lines.join('\n');
-}
+
