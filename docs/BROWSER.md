@@ -38,7 +38,8 @@ const cua = new Cua({
 | `createBrowserTab(browserId, url, {visible})` | `Target.createTarget` + attach |
 | `goto/back/forward/reload/close` | `Page.*` |
 | `getAXState()` | `Accessibility.getFullAXTree`, ignored nodes skipped |
-| `getScreenshot()` | `Page.captureScreenshot` (PNG bytes) |
+| `getScreenshot()` / `screenshot({fullPage, clip})` | `Page.captureScreenshot`, optional `captureBeyondViewport` / `clip` |
+| `title()` / `url()` | `Runtime.evaluate` on `document.title` / `location.href` |
 | `click(index)` / `click([x,y])` | AX `backendDOMNodeId` → `DOM.getBoxModel` center, then mouse events |
 | `scroll(index \| [x,y], dir, n)` | element center or coordinate + `mouseWheel` |
 | `typeText(index?, text)` | optional `DOM.focus` then `Input.insertText` |

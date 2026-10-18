@@ -126,8 +126,34 @@ export class BrowserTab {
   }
 
   async getScreenshot() {
-    const { data } = await this.connection.send('Page.captureScreenshot', { format: 'png' }, this.sessionId);
+    return this.screenshot();
+  }
+
+  async screenshot({ fullPage = false, clip } = {}) {
+    const params = { format: 'png' };
+    if (fullPage) params.captureBeyondViewport = true;
+    if (clip) {
+      if (![clip.x, clip.y, clip.width, clip.height].every((value) => Number.isFinite(value))) {
+        throw new TypeError('screenshot clip requires finite x, y, width, height');
+      }
+      params.clip = { x: clip.x, y: clip.y, width: clip.width, height: clip.height, scale: 1 };
+    }
+    const { data } = await this.connection.send('Page.captureScreenshot', params, this.sessionId);
     return new Uint8Array(Buffer.from(data, 'base64'));
+  }
+
+  async title() {
+    const { result } = await this.connection.send('Runtime.evaluate', {
+      expression: 'document.title', returnByValue: true,
+    }, this.sessionId);
+    return result?.value ?? '';
+  }
+
+  async url() {
+    const { result } = await this.connection.send('Runtime.evaluate', {
+      expression: 'location.href', returnByValue: true,
+    }, this.sessionId);
+    return result?.value ?? '';
   }
 
   async performSecondaryAction() {

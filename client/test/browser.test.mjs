@@ -201,3 +201,26 @@ test('markDeliverable/markHandoff/requestUserTakeover set local state', async ()
   await tab.requestUserTakeover();
   assert.equal(tab.takeoverRequested, true);
 });
+
+test('title/url and screenshot options map onto CDP', async () => {
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Runtime.evaluate': (params) => ({ result: { value: params.expression === 'document.title' ? 'Example' : 'https://example.test/' } }),
+    'Page.captureScreenshot': { data: Buffer.from([0x89, 0x50]).toString('base64') },
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://example.test/');
+
+  assert.equal(await tab.title(), 'Example');
+  assert.equal(await tab.url(), 'https://example.test/');
+
+  await tab.screenshot();
+  assert.equal(connection.calls.at(-1).params.captureBeyondViewport, undefined);
+  await tab.screenshot({ fullPage: true });
+  assert.equal(connection.calls.at(-1).params.captureBeyondViewport, true);
+  await tab.screenshot({ clip: { x: 1, y: 2, width: 30, height: 40 } });
+  assert.deepEqual(connection.calls.at(-1).params.clip, { x: 1, y: 2, width: 30, height: 40, scale: 1 });
+  await assert.rejects(() => tab.screenshot({ clip: { x: 1 } }), /clip requires/);
+});
