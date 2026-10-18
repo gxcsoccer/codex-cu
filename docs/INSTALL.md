@@ -27,8 +27,12 @@ codex-cu --socket /tmp/cu.sock --approvals ~/approvals.json
 ```
 
 ```json
-{"apps": {"com.example.blocked": {"allowed": false}}}
+{"persistentApprovals": {"com.example.blocked": "alwaysDeny"}}
 ```
+
+`alwaysAllow` and `alwaysDeny` are the observed decision values; `allowAllChats`
+overrides individual entries. The older `{"apps": {"<bundle>": {"allowed":
+false}}}` document is still accepted.
 
 Missing files, malformed JSON, and apps without an entry fail open.
 

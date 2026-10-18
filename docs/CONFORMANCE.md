@@ -26,7 +26,7 @@ response and are documented as such.
 | `AppGetSkyshot` | AX text + screenshot | yes; focused-window root, localized roles, stable element ids; `appSpecificInstructions` from `--instructions` | `FormatParityTests`, `ObservationTests`, `AXIDRegistryTests` |
 | Screenshot | SCK → temp PNG → `file://` | same shape; old file removed | `ObservationTests` |
 | Diff | `~`/`+`, removed ranges, Selected block | same shape | `AXDiffTests`, `FormatParityTests` |
-| `AppPolicy` | approvals store | JSON allowlist (`--approvals`); explicit false -> `-10006`; missing/malformed/absent entry -> allow (**fail-open deviation**) | `PolicyTests`, integration test |
+| `AppPolicy` | `persistentApprovals` (alwaysAllow/alwaysDeny), `allowAllChats`; result carries `allowed` + `decision` | same schema (`--approvals`); explicit alwaysDeny -> `-10006`; missing/malformed/absent -> allow (**fail-open deviation**) | `PolicyTests`, integration test |
 | `PerformAction` | 9 action kinds | all 9 | `ActionTests` |
 | Audio recording | Start/Stop, 100…300000 ms, WAV URL | protocol + lifecycle + ScreenCaptureKit recorder (`--audio`); denial -> `-10009` | `AudioTests`, `AudioFormatTests`, wire test |
 | Screen lock | `-10020` | observation/actions fail with `-10020` | `ScreenLockTests` |

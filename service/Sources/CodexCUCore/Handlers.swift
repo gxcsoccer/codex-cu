@@ -159,7 +159,8 @@ public final class DefaultHandlers: ServiceHandlers {
   }
 
   public func policy(_ app: String) throws -> [String: Any] {
-    ["allowed": isAllowed(app)]
+    let decision = approvalDecision(app)
+    return ["allowed": decision.allowed, "decision": decision.decision]
   }
 
   // MARK: - actions
@@ -228,7 +229,7 @@ public final class DefaultHandlers: ServiceHandlers {
       throw ServiceError(.screenLocked, "the screen is locked")
     }
     try appExists(app)
-    guard isAllowed(app) else {
+    guard approvalDecision(app).allowed else {
       throw ServiceError(.appNotAllowed, "application is not approved: \(app)")
     }
     guard permissionsTrusted() else {
@@ -388,13 +389,38 @@ public final class DefaultHandlers: ServiceHandlers {
     return first
   }
 
-  private func isAllowed(_ app: String) -> Bool {
+  private struct ApprovalDecision {
+    let allowed: Bool
+    let decision: String
+  }
+
+  private static let allowDecision = ApprovalDecision(allowed: true, decision: "alwaysAllow")
+  private static let denyDecision = ApprovalDecision(allowed: false, decision: "alwaysDeny")
+
+  /// The observed store has `persistentApprovals` (bundleID -> alwaysAllow /
+  /// alwaysDeny) and `allowAllChats`. The older `{apps: {id: {allowed}}}`
+  /// document is still accepted so existing deployments do not break.
+  private func approvalDecision(_ app: String) -> ApprovalDecision {
     guard let url = approvalsURL,
           let data = try? Data(contentsOf: url),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let apps = json["apps"] as? [String: Any] else {
-      return true // no approval store configured: allow (documented in COMPATIBILITY.md)
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+      return Self.allowDecision // no store: allow (documented deviation)
     }
-    return (apps[app] as? [String: Any])?["allowed"] as? Bool ?? true
+    if (json["allowAllChats"] as? Bool) == true { return Self.allowDecision }
+
+    if let persistent = json["persistentApprovals"] as? [String: String],
+       let raw = persistent[app] {
+      if raw == "alwaysDeny" { return Self.denyDecision }
+      if raw == "alwaysAllow" { return Self.allowDecision }
+    }
+    if let apps = json["apps"] as? [String: Any] {
+      if let entry = apps[app] as? [String: Any], let allowed = entry["allowed"] as? Bool {
+        return allowed ? Self.allowDecision : Self.denyDecision
+      }
+      if let raw = apps[app] as? String {
+        return raw == "alwaysDeny" ? Self.denyDecision : Self.allowDecision
+      }
+    }
+    return Self.allowDecision
   }
 }

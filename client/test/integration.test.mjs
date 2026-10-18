@@ -161,13 +161,17 @@ test('approvals file is honoured over the wire', { skip: !available }, async () 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-appr-'));
   const socketPath = path.join(dir, 'cu.sock');
   const approvals = path.join(dir, 'approvals.json');
-  fs.writeFileSync(approvals, JSON.stringify({ apps: { 'com.blocked.app': { allowed: false } } }));
+  fs.writeFileSync(approvals, JSON.stringify({ persistentApprovals: { 'com.blocked.app': 'alwaysDeny' } }));
   try {
     await withService(socketPath, async () => {
       const client = new Client({ socketPath, timeoutMs: 5000 });
       try {
-        assert.equal((await client.getAppPolicy('com.blocked.app')).allowed, false);
-        assert.equal((await client.getAppPolicy('com.allowed.app')).allowed, true);
+        const blocked = await client.getAppPolicy('com.blocked.app');
+        assert.equal(blocked.allowed, false);
+        assert.equal(blocked.decision, 'alwaysDeny');
+        const allowed = await client.getAppPolicy('com.allowed.app');
+        assert.equal(allowed.allowed, true);
+        assert.equal(allowed.decision, 'alwaysAllow');
       } finally {
         client.close();
       }

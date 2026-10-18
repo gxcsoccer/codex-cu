@@ -46,6 +46,26 @@ private func handlers(approvals: URL?) -> DefaultHandlers {
   #expect(try DefaultHandlers.selectRunning(["only"], app: "x") == "only")
 }
 
+@Test func persistentApprovalsDenyAndAllow() throws {
+  let denied = try writeApprovals(#"{"persistentApprovals":{"com.test.app":"alwaysDeny"}}"#)
+  defer { try? FileManager.default.removeItem(at: denied.deletingLastPathComponent()) }
+  let policy = try handlers(approvals: denied).policy("com.test.app")
+  #expect(policy["allowed"] as? Bool == false)
+  #expect(policy["decision"] as? String == "alwaysDeny")
+
+  let allowed = try writeApprovals(#"{"persistentApprovals":{"com.test.app":"alwaysAllow"}}"#)
+  defer { try? FileManager.default.removeItem(at: allowed.deletingLastPathComponent()) }
+  let allowedPolicy = try handlers(approvals: allowed).policy("com.test.app")
+  #expect(allowedPolicy["allowed"] as? Bool == true)
+  #expect(allowedPolicy["decision"] as? String == "alwaysAllow")
+}
+
+@Test func allowAllChatsOverridesEntries() throws {
+  let url = try writeApprovals(#"{"allowAllChats":true,"persistentApprovals":{"com.test.app":"alwaysDeny"}}"#)
+  defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+  #expect(try handlers(approvals: url).policy("com.test.app")["allowed"] as? Bool == true)
+}
+
 @Test func explicitDenialReturnsAppNotAllowed() throws {
   let url = try writeApprovals(#"{"apps":{"com.test.app":{"allowed":false}}}"#)
   defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
