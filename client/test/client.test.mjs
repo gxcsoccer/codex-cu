@@ -123,3 +123,18 @@ test('audio requests carry the duration and stop returns the service URL', async
     await mock.close();
   }
 });
+
+test('getAppState accepts an options object with disableDiff', async () => {
+  const mock = await startMockServer((message) => {
+    if (message.method === 'ping') return { result: { serverApiVersion: API_VERSION } };
+    return { result: { text: 'tree' } };
+  });
+  const client = new Client({ socketPath: mock.socketPath });
+  try {
+    await client.getAppState({ app: 'com.apple.finder', disableDiff: true });
+    assert.deepEqual(mock.requests[0].params.request, { app: 'com.apple.finder', disableDiff: true });
+  } finally {
+    client.close();
+    await mock.close();
+  }
+});

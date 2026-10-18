@@ -126,14 +126,9 @@ public enum AXTree {
       }
     }
 
-    // The observed tree starts at the focused window (`0 标准窗口`), not at the
-    // application element. Fall back to the app when no window is focused.
-    var root = app
-    var focused: CFTypeRef?
-    if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused) == .success,
-       let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() {
-      root = focused as! AXUIElement
-    }
+    // The observed tree starts at a window (`0 标准窗口`), not at the
+    // application element: focused, then main, then the first window.
+    let root = windowElement(app) ?? app
     walk(root, depth: 0)
     return Snapshot(nodes: nodes, elements: elements)
   }
@@ -150,16 +145,30 @@ public enum AXTree {
 
   public static func frontWindowTitle(pid: pid_t) -> String {
     let app = AXUIElementCreateApplication(pid)
-    var window: CFTypeRef?
-    if AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &window) == .success,
-       let window, CFGetTypeID(window) == AXUIElementGetTypeID() {
-      var title: CFTypeRef?
-      if AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &title) == .success,
-         let text = title as? String, !text.isEmpty {
-        return text
-      }
+    guard let window = windowElement(app) else { return "" }
+    var title: CFTypeRef?
+    if AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &title) == .success,
+       let text = title as? String {
+      return text
     }
     return ""
+  }
+
+  /// Focused window, then main window, then the first window.
+  public static func windowElement(_ app: AXUIElement) -> AXUIElement? {
+    for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+      var value: CFTypeRef?
+      if AXUIElementCopyAttributeValue(app, attribute as CFString, &value) == .success,
+         let value, CFGetTypeID(value) == AXUIElementGetTypeID() {
+        return (value as! AXUIElement)
+      }
+    }
+    var windows: CFTypeRef?
+    if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windows) == .success,
+       let array = windows as? [AXUIElement], let first = array.first {
+      return first
+    }
+    return nil
   }
 
   public static func render(_ nodes: [Node], app: String = "", window: String = "") -> String {

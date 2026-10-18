@@ -145,8 +145,10 @@ export class Client {
   listApps() { return this.request(REQUEST_TYPES.listApps, {}); }
   startApp(app) { return this.request(REQUEST_TYPES.appStart, { app }); }
   getAppState(app, { disableDiff } = {}) {
-    const request = typeof app === 'string' ? { app } : { app: app.app };
+    const options = typeof app === 'string' ? {} : app;
+    const request = { app: typeof app === 'string' ? app : options.app };
     if (disableDiff !== undefined) request.disableDiff = disableDiff;
+    else if (options.disableDiff !== undefined) request.disableDiff = options.disableDiff;
     return this.request(REQUEST_TYPES.appGetSkyshot, request);
   }
   getAppPolicy(app) { return this.request(REQUEST_TYPES.appPolicy, { app }); }
