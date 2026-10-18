@@ -11,6 +11,13 @@ BIN_DIR="${CODEX_CU_BIN_DIR:-$HOME/.local/bin}"
 SUPPORT="${CODEX_CU_SUPPORT:-$HOME/Library/Application Support/codex-cu}"
 SOCKET="$SUPPORT/computeruse.sock"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+EXTRA_LINES=""
+if [[ -n "${CODEX_CU_ARGS:-}" ]]; then
+  read -r -a EXTRA_ARGS <<< "$CODEX_CU_ARGS"
+  for arg in "${EXTRA_ARGS[@]}"; do
+    EXTRA_LINES+="    <string>$arg</string>"$'\n'
+  done
+fi
 
 print_plist() {
   cat <<PLIST
@@ -24,6 +31,7 @@ print_plist() {
     <string>$BIN_DIR/codex-cu</string>
     <string>--socket</string>
     <string>$SOCKET</string>
+$EXTRA_LINES
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

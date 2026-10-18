@@ -86,6 +86,16 @@ console.log(await tab.getAXState());
 The provider talks CDP to a Chrome started with `--remote-debugging-port`. See
 `docs/BROWSER.md` for supported methods and gaps.
 
+## Live verification
+
+With Accessibility/Screen Recording granted and a service running:
+
+```bash
+node scripts/live-check.mjs --socket /tmp/codex-cu.sock --audio
+```
+
+See `docs/LIVE-VERIFICATION.md` for the checklist and expected output.
+
 ## Install
 
 ```bash

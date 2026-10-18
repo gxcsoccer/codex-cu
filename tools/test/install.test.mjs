@@ -23,6 +23,16 @@ test('prints a valid LaunchAgent plist', { skip: process.platform !== 'darwin' }
   assert.match(lint, /OK/);
 });
 
+test('CODEX_CU_ARGS is appended to ProgramArguments', { skip: process.platform !== 'darwin' }, () => {
+  const output = execFileSync('bash', [script, '--print-plist'], {
+    encoding: 'utf8',
+    env: { ...process.env, CODEX_CU_ARGS: '--audio --launch-timeout 8' },
+  });
+  assert.match(output, /<string>--audio<\/string>/);
+  assert.match(output, /<string>--launch-timeout<\/string>/);
+  assert.match(output, /<string>8<\/string>/);
+});
+
 test('rejects unknown flags', { skip: process.platform !== 'darwin' }, () => {
   assert.throws(() => execFileSync('bash', [script, '--nope'], { stdio: 'pipe' }));
 });
