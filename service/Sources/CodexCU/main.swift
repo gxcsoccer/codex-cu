@@ -3,6 +3,8 @@ import CodexCUCore
 
 var socketPath = "/tmp/codex-cu.sock"
 var approvalsPath: String?
+var instructionsPath: String?
+var launchTimeout: TimeInterval = 5
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let argument = arguments.first {
   arguments.removeFirst()
@@ -14,6 +16,20 @@ while let argument = arguments.first {
     }
     arguments.removeFirst()
     socketPath = value
+  case "--instructions":
+    guard let value = arguments.first else {
+      FileHandle.standardError.write(Data("--instructions requires a path\n".utf8))
+      exit(2)
+    }
+    arguments.removeFirst()
+    instructionsPath = value
+  case "--launch-timeout":
+    guard let value = arguments.first, let seconds = TimeInterval(value) else {
+      FileHandle.standardError.write(Data("--launch-timeout requires seconds\n".utf8))
+      exit(2)
+    }
+    arguments.removeFirst()
+    launchTimeout = seconds
   case "--approvals":
     guard let value = arguments.first else {
       FileHandle.standardError.write(Data("--approvals requires a path\n".utf8))
@@ -22,7 +38,7 @@ while let argument = arguments.first {
     arguments.removeFirst()
     approvalsPath = value
   case "--help", "-h":
-    print("usage: CodexCU [--socket /path/to/computeruse.sock] [--approvals /path/to/approvals.json]")
+    print("usage: CodexCU [--socket PATH] [--approvals PATH] [--instructions PATH] [--launch-timeout SECONDS]")
     exit(0)
   default:
     FileHandle.standardError.write(Data("unknown argument: \(argument)\n".utf8))
@@ -30,9 +46,20 @@ while let argument = arguments.first {
   }
 }
 
-let handlers = approvalsPath.map { path in
-  DefaultHandlers(approvalsURL: URL(fileURLWithPath: path))
-} ?? DefaultHandlers()
+var instructions: [String: String] = [:]
+if let instructionsPath {
+  do {
+    instructions = try DefaultHandlers.loadInstructions(at: URL(fileURLWithPath: instructionsPath))
+  } catch {
+    FileHandle.standardError.write(Data("fatal: \(error)\n".utf8))
+    exit(1)
+  }
+}
+let handlers = DefaultHandlers(
+  approvalsURL: approvalsPath.map { URL(fileURLWithPath: $0) },
+  launchTimeout: launchTimeout,
+  instructions: instructions,
+)
 let server = Server(socketPath: socketPath, handlers: handlers)
 do {
   try server.start()

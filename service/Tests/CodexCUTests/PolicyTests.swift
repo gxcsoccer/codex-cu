@@ -70,3 +70,20 @@ private func handlers(approvals: URL?) -> DefaultHandlers {
   defer { try? FileManager.default.removeItem(at: otherApp.deletingLastPathComponent()) }
   #expect(try handlers(approvals: otherApp).policy("com.test.app")["allowed"] as? Bool == true)
 }
+
+@Test func instructionsFileIsLoadedAndRejectsMalformedJSON() throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+
+  let valid = directory.appendingPathComponent("valid.json")
+  try #"{"apps":{"com.test.app":"Use the sidebar."}}"#.write(to: valid, atomically: true, encoding: .utf8)
+  #expect(try DefaultHandlers.loadInstructions(at: valid) == ["com.test.app": "Use the sidebar."])
+
+  let invalid = directory.appendingPathComponent("invalid.json")
+  try "[]".write(to: invalid, atomically: true, encoding: .utf8)
+  #expect(throws: ServiceError.self) { _ = try DefaultHandlers.loadInstructions(at: invalid) }
+
+  let missing = directory.appendingPathComponent("missing.json")
+  #expect(throws: ServiceError.self) { _ = try DefaultHandlers.loadInstructions(at: missing) }
+}

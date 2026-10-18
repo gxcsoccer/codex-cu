@@ -32,6 +32,24 @@ codex-cu --socket /tmp/cu.sock --approvals ~/approvals.json
 
 Missing files, malformed JSON, and apps without an entry fail open.
 
+## Instructions and launch timeout
+
+```bash
+codex-cu --socket /tmp/cu.sock \
+  --instructions ~/instructions.json \
+  --launch-timeout 8
+```
+
+`instructions.json` maps bundle ids to the text returned as
+`appSpecificInstructions`:
+
+```json
+{"apps": {"com.apple.finder": "Prefer the sidebar and list view."}}
+```
+
+`--launch-timeout` controls how long `startApp` waits for the first window
+(default 5 s).
+
 ## Manual
 
 ```bash

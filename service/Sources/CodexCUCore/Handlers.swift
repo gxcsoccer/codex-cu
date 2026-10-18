@@ -291,6 +291,22 @@ public final class DefaultHandlers: ServiceHandlers {
     return try selectRunning(matches, app: app)
   }
 
+  /// Loads `{"apps": {"<bundle>": "<text>"}}`; malformed files are a request error.
+  public static func loadInstructions(at url: URL) throws -> [String: String] {
+    do {
+      let data = try Data(contentsOf: url)
+      guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let apps = json["apps"] as? [String: String] else {
+        throw ServiceError(.couldNotGetRequestData, "instructions file needs {\"apps\": {bundle: text}}")
+      }
+      return apps
+    } catch let error as ServiceError {
+      throw error
+    } catch {
+      throw ServiceError(.couldNotGetRequestData, "could not read instructions: \(error.localizedDescription)")
+    }
+  }
+
   /// Pure selection rule: no match -> not found, more than one -> ambiguous.
   public static func selectRunning<T>(_ matches: [T], app: String) throws -> T {
     guard let first = matches.first else {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { Client } from '../src/client.mjs';
@@ -172,6 +172,19 @@ test('approvals file is honoured over the wire', { skip: !available }, async () 
         client.close();
       }
     }, ['--approvals', approvals]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('rejects malformed instructions at startup', { skip: !available }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-instr-'));
+  const approvals = path.join(dir, 'instructions.json');
+  fs.writeFileSync(approvals, '[]');
+  try {
+    const result = spawnSync(binary, ['--socket', path.join(dir, 'cu.sock'), '--instructions', approvals], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /fatal:.*instructions/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
