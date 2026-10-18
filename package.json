@@ -5,7 +5,7 @@
   "description": "Clean-room, protocol-compatible reimplementation of Codex Computer Use",
   "type": "module",
   "scripts": {
-    "test": "node --test client/test/*.test.mjs",
+    "test": "node --test client/test/*.test.mjs tools/test/*.test.mjs",
     "test:coverage": "node --test --experimental-test-coverage client/test/*.test.mjs",
     "build:service": "swift build --package-path service",
     "test:service": "bash scripts/test-service.sh",

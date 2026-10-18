@@ -22,7 +22,7 @@ jobs:
         run: swift test --package-path service
 
       - name: Client tests
-        run: node --test client/test/framing.test.mjs client/test/client.test.mjs client/test/envelope.test.mjs
+        run: node --test client/test/framing.test.mjs client/test/client.test.mjs client/test/envelope.test.mjs tools/test/*.test.mjs
 
       - name: Integration test
         run: node --test client/test/integration.test.mjs
