@@ -5,6 +5,7 @@ var socketPath = "/tmp/codex-cu.sock"
 var approvalsPath: String?
 var instructionsPath: String?
 var launchTimeout: TimeInterval = 5
+var enableAudio = false
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let argument = arguments.first {
   arguments.removeFirst()
@@ -16,6 +17,8 @@ while let argument = arguments.first {
     }
     arguments.removeFirst()
     socketPath = value
+  case "--audio":
+    enableAudio = true
   case "--instructions":
     guard let value = arguments.first else {
       FileHandle.standardError.write(Data("--instructions requires a path\n".utf8))
@@ -38,7 +41,7 @@ while let argument = arguments.first {
     arguments.removeFirst()
     approvalsPath = value
   case "--help", "-h":
-    print("usage: CodexCU [--socket PATH] [--approvals PATH] [--instructions PATH] [--launch-timeout SECONDS]")
+    print("usage: CodexCU [--socket PATH] [--approvals PATH] [--instructions PATH] [--launch-timeout SECONDS] [--audio]")
     exit(0)
   default:
     FileHandle.standardError.write(Data("unknown argument: \(argument)\n".utf8))
@@ -59,6 +62,7 @@ let handlers = DefaultHandlers(
   approvalsURL: approvalsPath.map { URL(fileURLWithPath: $0) },
   launchTimeout: launchTimeout,
   instructions: instructions,
+  audioRecorder: enableAudio ? SystemAudioRecorder() : nil,
 )
 let server = Server(socketPath: socketPath, handlers: handlers)
 do {

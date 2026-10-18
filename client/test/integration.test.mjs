@@ -189,3 +189,28 @@ test('rejects malformed instructions at startup', { skip: !available }, () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('audio start is either recorded or rejected for missing TCC', { skip: !available }, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-cu-audio-'));
+  const socketPath = path.join(dir, 'cu.sock');
+  try {
+    await withService(socketPath, async () => {
+      const client = new Client({ socketPath, timeoutMs: 15000 });
+      try {
+        try {
+          await client.startAudioRecording({ maxDurationMilliseconds: 100 });
+          const { url } = await client.stopAudioRecording();
+          assert.match(url, /^file:\/\/.*\.wav$/);
+        } catch (error) {
+          assert.ok(error instanceof CodexCuError);
+          assert.equal(error.code, -10009);
+          assert.match(error.message, /screen recording permission/);
+        }
+      } finally {
+        client.close();
+      }
+    }, ['--audio']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
