@@ -5,8 +5,8 @@
 | M1 protocol + inventory | framing, JSON-RPC, ping, `ListApps`, AX tree text, client lib, CI | **done** |
 | M2 input actions | click/drag/scroll/type/pressKey/setValue/selectText, AX-first with CGEvent fallback, element-ID resolution, policy approvals | **done** |
 | M3 observation | skyshot (ScreenCaptureKit → temp PNG → `file://`), AX diffing, app-specific instructions | **done** |
-| M4 parity harness | scripted scenarios; semantic comparison against recorded Codex traces (same app, same steps) | next |
-| M5 packaging | launchd agent / `install.sh`, socket bootstrap auth, docs | planned |
+| M4 parity harness | scripted scenarios; semantic comparison against recorded Codex traces (same app, same steps) | **harness done**; live run blocked on TCC |
+| M5 packaging | launchd agent / `install.sh`, socket bootstrap auth, docs | next |
 | M6 audio | Start/StopAudioRecording parity | out of scope for now |
 
 ## M2 design notes
