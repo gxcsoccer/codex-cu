@@ -49,6 +49,73 @@ export function parseKeyChord(spec) {
   throw new Error(`unsupported browser key: ${spec}`);
 }
 
+export class Locator {
+  constructor(tab, selector) {
+    if (typeof selector !== 'string' || selector.trim() === '') {
+      throw new TypeError('locator requires a selector');
+    }
+    this.tab = tab;
+    this.selector = selector;
+  }
+
+  async evaluate(body) {
+    return this.tab.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(this.selector)}); ${body} })()`);
+  }
+
+  async count() {
+    return this.tab.evaluate(`document.querySelectorAll(${JSON.stringify(this.selector)}).length`);
+  }
+
+  async click() {
+    const clicked = await this.evaluate('if (!el) return false; el.click(); return true;');
+    if (!clicked) throw new Error(`locator.click: no element for ${this.selector}`);
+  }
+
+  async fill(value) {
+    if (value === undefined || value === null) throw new TypeError('locator.fill requires a value');
+    const ok = await this.evaluate(`if (!el) return false; el.focus(); el.value = ${JSON.stringify(String(value))}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return true;`);
+    if (!ok) throw new Error(`locator.fill: no element for ${this.selector}`);
+  }
+
+  async type(value) {
+    const focused = await this.evaluate('if (!el) return false; el.focus(); return true;');
+    if (!focused) throw new Error(`locator.type: no element for ${this.selector}`);
+    await this.tab.connection.send('Input.insertText', { text: String(value) }, this.tab.sessionId);
+  }
+
+  async press(key) {
+    const focused = await this.evaluate('if (!el) return false; el.focus(); return true;');
+    if (!focused) throw new Error(`locator.press: no element for ${this.selector}`);
+    await this.tab.pressKey(key);
+  }
+
+  async textContent() {
+    return this.evaluate('return el ? el.textContent : null;');
+  }
+
+  async isVisible() {
+    return this.evaluate('return !!el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0);');
+  }
+
+  async getAttribute(name) {
+    if (typeof name !== 'string' || name === '') throw new TypeError('locator.getAttribute requires a name');
+    return this.evaluate(`return el ? el.getAttribute(${JSON.stringify(name)}) : null;`);
+  }
+}
+
+export class PlaywrightAPI {
+  constructor(tab) { this.tab = tab; }
+
+  locator(selector) { return new Locator(this.tab, selector); }
+
+  async evaluate(script, arg) {
+    const expression = typeof script === 'function'
+      ? `(${script.toString()})(${JSON.stringify(arg ?? null)})`
+      : String(script);
+    return this.tab.evaluate(expression);
+  }
+}
+
 export class BrowserTab {
   constructor({ connection, targetId, sessionId, info = {} }) {
     this.connection = connection;
@@ -57,6 +124,7 @@ export class BrowserTab {
     this.info = info;
     this.status = null; // 'deliverable' | 'handoff'
     this.takeoverRequested = false;
+    this.playwright = new PlaywrightAPI(this);
     this.axIndex = new Map(); // AX nodeId -> backendDOMNodeId
   }
 
@@ -88,6 +156,14 @@ export class BrowserTab {
         .map((node) => [String(node.nodeId), node.backendDOMNodeId]),
     );
     return formatAXTree(nodes);
+  }
+
+  async evaluate(expression) {
+    const { result, exceptionDetails } = await this.connection.send('Runtime.evaluate', {
+      expression, returnByValue: true, awaitPromise: true,
+    }, this.sessionId);
+    if (exceptionDetails) throw new Error(exceptionDetails.text ?? 'Runtime.evaluate failed');
+    return result?.value;
   }
 
   backendFor(index) {

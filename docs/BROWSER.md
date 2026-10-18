@@ -63,6 +63,27 @@ tests with a fake CDP connection, and `client/test/cdp-live.test.mjs` runs the
 whole browser surface against a real WebSocket CDP server implementation
 (handshake, framed JSON-RPC, sessions).
 
+## Playwright-style locators
+
+`tab.playwright.locator(selector)` supports a deterministic CSS subset:
+
+```js
+const button = tab.playwright.locator('#submit');
+await button.click();
+await tab.playwright.locator('input[name=q]').fill('codex');
+await button.textContent();
+await button.isVisible();
+await button.getAttribute('data-testid');
+await button.count();
+```
+
+Each method runs inside `Runtime.evaluate` (focus/value/events), with
+`Input.insertText` for typing and the chord parser for `press`.
+
+Limitations: **CSS selectors only**. Playwright-specific syntax (`>>`,
+`internal:*`, `getByRole`/`getByText`) is not parsed, and there is no auto-waiting
+or actionability check — `click()` fires `el.click()` immediately.
+
 ## Gaps vs the original
 
 - **Element indices come from the latest `getAXState()`**; stale indices raise an

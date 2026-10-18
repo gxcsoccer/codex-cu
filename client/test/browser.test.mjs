@@ -224,3 +224,35 @@ test('title/url and screenshot options map onto CDP', async () => {
   assert.deepEqual(connection.calls.at(-1).params.clip, { x: 1, y: 2, width: 30, height: 40, scale: 1 });
   await assert.rejects(() => tab.screenshot({ clip: { x: 1 } }), /clip requires/);
 });
+
+test('playwright locator subset drives the page through Runtime.evaluate', async () => {
+  const evaluated = [];
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Runtime.evaluate': (params) => {
+      evaluated.push(params.expression);
+      if (params.expression.includes('querySelectorAll')) return { result: { value: 3 } };
+      if (params.expression.includes('textContent')) return { result: { value: 'hello' } };
+      if (params.expression.includes('offsetWidth')) return { result: { value: true } };
+      if (params.expression.includes('getAttribute')) return { result: { value: 'x' } };
+      return { result: { value: true } };
+    },
+    'Input.insertText': {},
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  const locator = tab.playwright.locator('#submit');
+
+  assert.equal(await locator.count(), 3);
+  await locator.click();
+  await locator.fill('hello');
+  await locator.type('world');
+  await locator.press('enter');
+  assert.equal(await locator.textContent(), 'hello');
+  assert.equal(await locator.isVisible(), true);
+  assert.equal(await locator.getAttribute('data-x'), 'x');
+  assert.ok(evaluated.some((expression) => expression.includes('document.querySelector("#submit")')));
+  assert.ok(connection.calls.some((call) => call.method === 'Input.insertText'));
+});
