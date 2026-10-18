@@ -3,14 +3,14 @@ import ApplicationServices
 import CoreGraphics
 
 public protocol ActionExecuting {
-  func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int) throws
+  func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int, modifiers: CGEventFlags, duration: TimeInterval) throws
   func drag(from: CGPoint, to: CGPoint) throws
   func scroll(element: AXUIElement?, point: CGPoint?, direction: String, pages: Int) throws
   func type(_ text: String) throws
-  func pressKey(_ spec: String) throws
+  func pressKey(_ spec: String, duration: TimeInterval) throws
   func paste(_ text: String, format: String?) throws
   func setValue(element: AXUIElement, value: String) throws
-  func selectText(element: AXUIElement, text: String) throws
+  func selectText(element: AXUIElement, text: String, prefix: String?, suffix: String?) throws
   func secondaryAction(element: AXUIElement, action: String) throws
 }
 
@@ -19,8 +19,9 @@ public protocol ActionExecuting {
 public final class SystemActionExecutor: ActionExecuting {
   public init() {}
 
-  public func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int) throws {
-    if let element, try pressIfPossible(element) { return }
+  public func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int,
+                    modifiers: CGEventFlags = [], duration: TimeInterval = 0) throws {
+    if modifiers.isEmpty, duration == 0, let element, try pressIfPossible(element) { return }
     let target = point ?? element.flatMap(Self.center(of:))
     guard let target else {
       throw ServiceError(.accessibilityError, "click needs a resolvable element or a coordinate")
@@ -36,7 +37,9 @@ public final class SystemActionExecutor: ActionExecuting {
         guard let event = CGEvent(mouseEventSource: source, mouseType: type,
                                   mouseCursorPosition: target, mouseButton: mouseButton) else { continue }
         event.setIntegerValueField(.mouseEventClickState, value: Int64(max(1, count)))
+        event.flags = modifiers
         event.post(tap: .cghidEventTap)
+        if duration > 0, type == down { Thread.sleep(forTimeInterval: duration) }
       }
     }
   }
@@ -96,7 +99,7 @@ public final class SystemActionExecutor: ActionExecuting {
     }
   }
 
-  public func pressKey(_ spec: String) throws {
+  public func pressKey(_ spec: String, duration: TimeInterval = 0) throws {
     try requireAccessibility()
     let chord = try KeyCodes.parse(spec)
     let source = CGEventSource(stateID: .hidSystemState)
@@ -107,6 +110,7 @@ public final class SystemActionExecutor: ActionExecuting {
     down.flags = chord.flags
     up.flags = chord.flags
     down.post(tap: .cghidEventTap)
+    if duration > 0 { Thread.sleep(forTimeInterval: duration) }
     up.post(tap: .cghidEventTap)
   }
 
@@ -124,10 +128,42 @@ public final class SystemActionExecutor: ActionExecuting {
     }
   }
 
-  public func selectText(element: AXUIElement, text: String) throws {
-    let result = AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef)
+  public func selectText(element: AXUIElement, text: String, prefix: String? = nil, suffix: String? = nil) throws {
+    var value: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value) == .success,
+          let string = value as? String else {
+      throw ServiceError(.accessibilityError, "element has no string value for selectText")
+    }
+    let ns = string as NSString
+    var search = NSRange(location: 0, length: ns.length)
+    var match: NSRange?
+    while search.length > 0 {
+      let candidate = ns.range(of: text, options: [], range: search)
+      if candidate.location == NSNotFound { break }
+      var ok = true
+      if let prefix, !prefix.isEmpty {
+        let start = candidate.location - prefix.utf16.count
+        if start < 0 || ns.substring(with: NSRange(location: start, length: prefix.utf16.count)) != prefix { ok = false }
+      }
+      if ok, let suffix, !suffix.isEmpty {
+        let end = candidate.location + candidate.length
+        if end + suffix.utf16.count > ns.length
+          || ns.substring(with: NSRange(location: end, length: suffix.utf16.count)) != suffix { ok = false }
+      }
+      if ok { match = candidate; break }
+      let next = candidate.location + max(1, candidate.length)
+      search = NSRange(location: next, length: ns.length - next)
+    }
+    guard let range = match else {
+      throw ServiceError(.accessibilityError, "text not found for selectText (prefix/suffix did not match)")
+    }
+    var cfRange = CFRange(location: range.location, length: range.length)
+    guard let axRange = AXValueCreate(.cfRange, &cfRange) else {
+      throw ServiceError(.unknownError, "could not create AX range")
+    }
+    let result = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axRange)
     guard result == .success else {
-      throw ServiceError(.accessibilityError, "could not set AXSelectedText (AXError \(result.rawValue))")
+      throw ServiceError(.accessibilityError, "could not set AXSelectedTextRange (AXError \(result.rawValue))")
     }
   }
 

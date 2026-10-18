@@ -21,6 +21,20 @@ public enum KeyCodes {
     "f7": 98, "f8": 100, "f9": 101, "f10": 109, "f11": 103, "f12": 111,
   ]
 
+  public static func parseModifiers(_ spec: String) throws -> CGEventFlags {
+    var flags: CGEventFlags = []
+    for token in spec.lowercased().split(separator: "+").map({ $0.trimmingCharacters(in: .whitespaces) }) where !token.isEmpty {
+      switch token {
+      case "cmd", "command", "⌘": flags.insert(.maskCommand)
+      case "shift", "⇧": flags.insert(.maskShift)
+      case "alt", "option", "opt", "⌥": flags.insert(.maskAlternate)
+      case "ctrl", "control", "⌃": flags.insert(.maskControl)
+      default: throw ServiceError(.couldNotGetRequestData, "unknown modifier: \(token)")
+      }
+    }
+    return flags
+  }
+
   public static func parse(_ spec: String) throws -> Chord {
     let tokens = spec.lowercased()
       .split(separator: "+")

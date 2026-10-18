@@ -17,19 +17,33 @@ final class FakeExecutor: ActionExecuting {
   }
 
   var calls: [Call] = []
+  var lastModifiers: CGEventFlags = []
+  var lastDuration: TimeInterval = 0
+  var lastPrefix: String?
+  var lastSuffix: String?
 
-  func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int) throws {
+  func click(element: AXUIElement?, point: CGPoint?, button: Int, count: Int,
+             modifiers: CGEventFlags, duration: TimeInterval) throws {
     calls.append(.click(button: button, count: count, hasElement: element != nil))
+    self.lastModifiers = modifiers
+    self.lastDuration = duration
   }
   func drag(from: CGPoint, to: CGPoint) throws { calls.append(.drag(from, to)) }
   func scroll(element: AXUIElement?, point: CGPoint?, direction: String, pages: Int) throws {
     calls.append(.scroll(direction: direction, pages: pages, hasElement: element != nil))
   }
   func type(_ text: String) throws { calls.append(.type(text)) }
-  func pressKey(_ spec: String) throws { calls.append(.pressKey(spec)) }
+  func pressKey(_ spec: String, duration: TimeInterval) throws {
+    calls.append(.pressKey(spec))
+    self.lastDuration = duration
+  }
   func paste(_ text: String, format: String?) throws { calls.append(.paste(text)) }
   func setValue(element: AXUIElement, value: String) throws { calls.append(.setValue(value)) }
-  func selectText(element: AXUIElement, text: String) throws { calls.append(.selectText(text)) }
+  func selectText(element: AXUIElement, text: String, prefix: String?, suffix: String?) throws {
+    calls.append(.selectText(text))
+    self.lastPrefix = prefix
+    self.lastSuffix = suffix
+  }
   func secondaryAction(element: AXUIElement, action: String) throws { calls.append(.secondaryAction(action)) }
 }
 
@@ -44,6 +58,27 @@ private func makeHandlers(store: SnapshotStore = SnapshotStore(),
     appExists: { _ in },
   )
   return (handlers, store, executor)
+}
+
+@Test func clickModifiersAndDurationAreForwarded() throws {
+  let (handlers, store, executor) = makeHandlers()
+  store.put(app: "com.test.app", elements: [7: AXUIElementCreateSystemWide()])
+  _ = try handlers.performAction("com.test.app", action: [
+    "click": ["at": ["elementID": ["_0": "7"]], "key": "cmd+shift", "duration": 0.2],
+  ])
+  #expect(executor.lastModifiers.contains(.maskCommand))
+  #expect(executor.lastModifiers.contains(.maskShift))
+  #expect(executor.lastDuration == 0.2)
+}
+
+@Test func selectTextForwardsPrefixAndSuffix() throws {
+  let (handlers, store, executor) = makeHandlers()
+  store.put(app: "com.test.app", elements: [7: AXUIElementCreateSystemWide()])
+  _ = try handlers.performAction("com.test.app", action: [
+    "selectText": ["elementID": "7", "text": "hello", "prefix": "say ", "suffix": " now"],
+  ])
+  #expect(executor.lastPrefix == "say ")
+  #expect(executor.lastSuffix == " now")
 }
 
 @Test func clickByElementUsesTheStoredElement() throws {

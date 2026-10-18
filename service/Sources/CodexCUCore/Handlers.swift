@@ -173,7 +173,10 @@ public final class DefaultHandlers: ServiceHandlers {
       let target = try parseTarget(app: app, click["at"])
       let count = click["clickCount"] as? Int ?? 1
       let button = click["mouseButton"] as? Int ?? 0
-      try executor.click(element: target.element, point: target.point, button: button, count: count)
+      let modifiers = try (click["key"] as? String).map { try KeyCodes.parseModifiers($0) } ?? []
+      let duration = click["duration"] as? Double ?? 0
+      try executor.click(element: target.element, point: target.point, button: button, count: count,
+                         modifiers: modifiers, duration: duration)
     } else if let drag = action["drag"] as? [String: Any] {
       let from = try parsePoint(drag["from"])
       let to = try parsePoint(drag["to"])
@@ -192,7 +195,7 @@ public final class DefaultHandlers: ServiceHandlers {
       guard let spec = press["_0"] as? String else {
         throw ServiceError(.couldNotGetRequestData, "pressKey requires a key string")
       }
-      try executor.pressKey(spec)
+      try executor.pressKey(spec, duration: press["duration"] as? Double ?? 0)
     } else if let paste = action["paste"] as? [String: Any] {
       guard let text = paste["text"] as? String else {
         throw ServiceError(.couldNotGetRequestData, "paste requires text")
@@ -209,7 +212,8 @@ public final class DefaultHandlers: ServiceHandlers {
       guard let text = select["text"] as? String else {
         throw ServiceError(.couldNotGetRequestData, "selectText requires text")
       }
-      try executor.selectText(element: element, text: text)
+      try executor.selectText(element: element, text: text,
+                             prefix: select["prefix"] as? String, suffix: select["suffix"] as? String)
     } else if let secondary = action["performSecondaryAction"] as? [String: Any] {
       let element = try resolveElement(app: app, id: secondary["elementID"])
       guard let name = secondary["action"] as? String else {

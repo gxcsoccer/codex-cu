@@ -38,11 +38,12 @@ Action semantics:
 
 | Action | Original | This repo | Evidence |
 |---|---|---|---|
-| click element | AX-first | `AXPress` when advertised, else CGEvent center | `ActionTests`, `SystemActionExecutor` |
+| click element | AX-first | `AXPress` when advertised (no modifiers/hold), else CGEvent center | `ActionTests`, `SystemActionExecutor` |
+| click payload | `key`, `durationMs` | modifiers held on the mouse events; hold duration | `clickModifiersAndDurationAreForwarded` |
 | click coordinate | yes | yes | `coordinateClicksSkipElementResolution` |
 | drag / scroll | yes | yes | `ActionTests` |
 | type | layout independent | unicode CGEvents | `ActionTests` |
-| pressKey | `cmd+shift+g` | parser covers modifiers/names/F1–F12 | `KeyCodesTests` |
+| pressKey | `cmd+shift+g` | parser covers modifiers/names/F1–F12; `duration` holds the key | `KeyCodesTests`, `ActionTests` |
 | paste | clipboard + cmd+v | same | `ActionTests` |
 | setValue / selectText | AX attributes | same | `ActionTests` |
 | secondaryAction | AX action | same | `ActionTests` |
