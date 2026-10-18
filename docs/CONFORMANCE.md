@@ -59,7 +59,7 @@ Action semantics:
 | `createBrowserTab` | yes | `Target.createTarget` | same |
 | `goto/back/forward/reload/close` | yes | `Page.*` | `cdp-live.test.mjs` |
 | AX state | WASM AX, native tree/diff layout | CDP AX rendered with the same layout (roles/states/fields, diff header, removed ranges, Selected block) | `ax-format.test.mjs`, `browser.test.mjs` |
-| element-index click | via AX indices | `backendDOMNodeId` + `DOM.getBoxModel` | same |
+| element-index click | via AX indices | stable DOM backend id + `DOM.getBoxModel` (verified live with Playwright) | `cdp-live.test.mjs`, `browser-playwright.test.mjs` |
 | typeText/pressKey/setValue/selectText | yes | focus + input / `Runtime.callFunctionOn` | same |
 | screenshot | yes | `Page.captureScreenshot` | same |
 | `title()` / `url()` / `screenshot({fullPage, clip})` | yes | `Runtime.evaluate` / `Page.captureScreenshot` | `browser.test.mjs` |

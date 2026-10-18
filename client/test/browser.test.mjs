@@ -278,3 +278,22 @@ test('domSnapshot and elementInfo run in the page', async () => {
   assert.equal(info.testId, 'go');
   await assert.rejects(() => tab.elementInfo('x', 2), /finite/);
 });
+
+test('AX includes the DOM id as ID:', async () => {
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Accessibility.getFullAXTree': { nodes: [
+      { nodeId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'RootWebArea' }, name: { value: 'T' } },
+      { nodeId: '3', parentId: '1', backendDOMNodeId: 103, ignored: false, role: { value: 'button' }, name: { value: 'Go' } },
+    ] },
+    'DOM.getDocument': { root: { backendNodeId: 101, children: [
+      { backendNodeId: 103, attributes: ['id', 'go', 'class', 'primary'] },
+    ] } },
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  const text = await tab.getAXState();
+  assert.match(text, /103 button Go, ID: go/);
+});

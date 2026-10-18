@@ -44,6 +44,7 @@ export function axLine(entry) {
   if (entry.name) text += ` ${entry.name}`;
   if (entry.states.length > 0) text += ` (${entry.states.join(', ')})`;
   if (entry.description) text += ` Description: ${entry.description}`;
+  if (entry.identifier) text += `, ID: ${entry.identifier}`;
   if (entry.url) text += `, URL: ${entry.url}`;
   if (entry.value !== '') text += entry.valueIsNumber ? ` ${entry.value}` : `, Value: ${entry.value}`;
   return text;
@@ -51,7 +52,7 @@ export function axLine(entry) {
 
 const isEmitted = (node) => Boolean(node) && !node.ignored && node.role?.value !== 'none';
 
-export function buildAXEntries(nodes) {
+export function buildAXEntries(nodes, { domIds = new Map() } = {}) {
   const byId = new Map();
   for (const node of nodes) byId.set(String(node.nodeId), node);
   // Depth counts only ancestors that are part of the output; ignored/presentational
@@ -82,6 +83,7 @@ export function buildAXEntries(nodes) {
       role,
       name: node.name?.value ?? '',
       description: node.description?.value ?? '',
+      identifier: node.backendDOMNodeId !== undefined ? (domIds.get(node.backendDOMNodeId) ?? '') : '',
       url: typeof props.url === 'string' ? props.url : '',
       value,
       valueIsNumber: isNumber,
@@ -106,7 +108,7 @@ export function formatAXTree(nodes) {
 
 export function axSignature(entry) {
   return [
-    entry.depth, entry.role, entry.name, entry.description, entry.url,
+    entry.depth, entry.role, entry.name, entry.description, entry.identifier, entry.url,
     entry.value, entry.valueIsNumber, entry.states.join(','),
   ].join('|');
 }

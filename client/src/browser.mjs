@@ -132,12 +132,13 @@ export class BrowserTab {
   }
 
   async goto(url) {
+    this.domIds = null;
     await this.connection.send('Page.navigate', { url }, this.sessionId);
   }
 
-  async back() { await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(-1) }, this.sessionId); }
-  async forward() { await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(1) }, this.sessionId); }
-  async reload() { await this.connection.send('Page.reload', {}, this.sessionId); }
+  async back() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(-1) }, this.sessionId); }
+  async forward() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(1) }, this.sessionId); }
+  async reload() { this.domIds = null; await this.connection.send('Page.reload', {}, this.sessionId); }
   async close() { await this.connection.send('Target.closeTarget', { targetId: this.id }); }
   async markDeliverable() { this.status = 'deliverable'; }
   async markHandoff() { this.status = 'handoff'; }
@@ -158,7 +159,8 @@ export class BrowserTab {
         .filter((node) => node.backendDOMNodeId !== undefined)
         .map((node) => [String(node.nodeId), node.backendDOMNodeId]),
     );
-    const entries = buildAXEntries(nodes);
+    const domIds = await this.domIdMap().catch(() => new Map());
+    const entries = buildAXEntries(nodes, { domIds });
     this.axIndex = new Map(
       entries
         .filter((entry) => entry.backendDOMNodeId !== undefined)
@@ -171,6 +173,26 @@ export class BrowserTab {
     }
     this.previousAX = entries;
     return formatEntries(entries);
+  }
+
+  /** backendNodeId -> DOM id, used for the `ID:` field. */
+  async domIdMap() {
+    if (this.domIds) return this.domIds;
+    await this.connection.send('DOM.enable', {}, this.sessionId);
+    const { root } = await this.connection.send('DOM.getDocument', { depth: -1, pierce: true }, this.sessionId);
+    const map = new Map();
+    const visit = (node) => {
+      if (!node) return;
+      const attributes = node.attributes ?? [];
+      for (let index = 0; index + 1 < attributes.length; index += 2) {
+        if (attributes[index] === 'id') map.set(node.backendNodeId, attributes[index + 1]);
+      }
+      for (const child of node.children ?? []) visit(child);
+      for (const shadow of node.shadowRoots ?? []) visit(shadow);
+    };
+    visit(root);
+    this.domIds = map;
+    return map;
   }
 
   async evaluate(expression) {
