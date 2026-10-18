@@ -1,0 +1,141 @@
+Window: "下载", App: 访达.
+0 标准窗口 下载, ID: FinderWindow, Secondary Actions: Raise
+	1 分离组
+		2 滚动区 Secondary Actions: Scroll Up, Scroll Down
+			3 外框 边栏
+				4 row (selectable) Description: 时钟, Value: 最近使用
+				5 row (selectable) Description: 两个人, Value: 共享
+				6 row (selectable, expanded) Value: 个人收藏, Secondary Actions: Collapse
+				7 row (selectable) Description: App Store字母A图标, Value: 应用程序
+				8 row (selectable) Description: 矩形上带程序坞的菜单栏, Value: 桌面
+				9 row (selectable) Description: 文档页面, Value: 文稿
+				10 row (selected) Description: 箭头向下圆圈, Value: 下载
+				11 row (selectable, expanded) Value: 位置, Secondary Actions: Collapse
+				12 row (selectable) Description: iCloud, Value: iCloud云盘
+				13 row (selectable) Description: 主页, Value: lang
+				14 row (selectable) Description: 内置硬盘驱动器, Value: Macintosh HD
+				15 row (selectable) Description: 隔空投送同心无线电波, Value: 隔空投送
+				16 row (selectable) Description: 删除, Value: 废纸篓
+				17 row (selectable, expanded) Value: 标签, Secondary Actions: Collapse
+				18 row (selectable) Description: 小圆圈标记, Value: 工作
+				19 row (selectable) Description: 小圆圈标记, Value: 重要
+				20 row (selectable) Description: 小圆圈标记，实心, Value: 绿色
+				21 row (selectable) Description: 小圆圈标记，实心, Value: 黄色
+				22 row (selectable) Description: 小圆圈标记，实心, Value: 蓝色
+				23 row (selectable) Description: 小圆圈标记，实心, Value: 灰色
+				24 row (selectable) Description: 小圆圈标记，实心, Value: 红色
+				25 row (selectable) Description: 两个小圆圈标记, Value: 所有标签…
+			26 滚动条 (settable, float) 0
+				27 值指示器 (settable, float) 0
+				28 增箭头按钮
+				29 减箭头按钮
+				30 增页面按钮
+				31 减页面按钮
+		32 分离器 (disabled, settable, float) 159.5
+		33 滚动区
+			34 外框 Description: 列表视图, ID: ListView
+				35 row (selected)
+					36 单元格 (selected) Secondary Actions: 打开“访达”项目
+						37 图像
+						38 文本栏 (settable) URL: file:///Users/<user>/Downloads/dsh-latest-macos-arm64.dmg, Value: dsh-latest-macos-arm64.dmg, Secondary Actions: 打开“访达”项目
+					39 单元格 (selected)
+						40 文本 265 MB
+					41 单元格 (selected)
+						42 文本 磁盘映像
+					43 单元格 (selected)
+						44 文本 今天 15:47
+				45 row (selected)
+					46 单元格 (selected) Secondary Actions: 打开“访达”项目
+						47 图像
+						48 文本栏 (settable) Value: doubao_work_desktop_dbgzb_sem_pinp_hexin_cpc_xiaz_xin1_macos_v2032014_2e94_1792165521.dmg, Secondary Actions: 打开“访达”项目, URL: file:///Users/<user>/Downloads/doubao_work_desktop_dbgzb_sem_pinp_hexin_cpc_xiaz_xin1_macos_v2032014_2e94_1792165521.dmg
+					49 单元格 (selected)
+						50 文本 791.8 MB
+					51 单元格 (selected)
+						52 文本 磁盘映像
+					53 单元格 (selected)
+						54 文本 今天 15:46
+				55 row (selected)
+					56 单元格 (selected) Secondary Actions: 打开“访达”项目
+						57 图像
+						58 文本栏 (settable) URL: file:///Users/<user>/Downloads/Crown.conf, Value: Crown.conf, Secondary Actions: 打开“访达”项目
+					59 单元格 (selected)
+						60 文本 25 KB
+					61 单元格 (selected)
+						62 文本 Surge 配置
+					63 单元格 (selected)
+						64 文本 2026年10月5日 09:50
+				65 row (selected)
+					66 单元格 (selected) Secondary Actions: 打开“访达”项目
+						67 图像
+						68 文本栏 (settable) URL: file:///Users/<user>/Downloads/hf_token.txt, Value: hf_token.txt, Secondary Actions: 打开“访达”项目
+					69 单元格 (selected)
+						70 文本 38 字节
+					71 单元格 (selected)
+						72 文本 纯文本文稿
+					73 单元格 (selected)
+						74 文本 2026年4月12日 13:49
+				75 row (selected)
+					76 单元格 (selected) Secondary Actions: 打开“访达”项目
+						77 图像
+						78 文本栏 (settable) URL: file:///Users/<user>/Downloads/aime-capability-schema.md, Value: aime-capability-schema.md, Secondary Actions: 打开“访达”项目
+					79 单元格 (selected)
+						80 文本 25 KB
+					81 单元格 (selected)
+						82 文本 Markdown Document
+					83 单元格 (selected)
+						84 文本 2026年4月11日 13:08
+				85 row (selected, collapsed) Secondary Actions: Expand
+					86 单元格 (selected) Secondary Actions: 打开“访达”项目
+						87 图像
+						88 文本栏 (settable) URL: file:///Users/<user>/Downloads/BenQ%20Installer/, Value: BenQ Installer, Secondary Actions: 打开“访达”项目
+						89 显示三角形 0
+					90 单元格 (selected)
+						91 文本 --
+					92 单元格 (selected)
+						93 文本 文件夹
+					94 单元格 (selected)
+						95 文本 2026年4月11日 01:42
+				96 row (selected)
+					97 单元格 (selected) Secondary Actions: 打开“访达”项目
+						98 图像
+						99 文本栏 (settable) URL: file:///Users/<user>/Downloads/Flower_SS%20(1).conf, Value: Flower_SS (1).conf, Secondary Actions: 打开“访达”项目
+					100 单元格 (selected)
+						101 文本 60 KB
+					102 单元格 (selected)
+						103 文本 Surge 配置
+					104 单元格 (selected)
+						105 文本 2026年4月10日 00:34
+				106 row (selected)
+					107 单元格 (selected) Secondary Actions: 打开“访达”项目
+						108 图像
+						109 文本栏 (settable) URL: file:///Users/<user>/Downloads/640.png, Value: 640.png, Secondary Actions: 打开“访达”项目
+					110 单元格 (selected)
+						111 文本 480 KB
+					112 单元格 (selected)
+						113 文本 PNG图像
+					114 单元格 (selected)
+						115 文本 2026年3月26日 02:35
+				116 row (selected)
+					117 单元格 (selected) Secondary Actions: 打开“访达”项目
+						118 图像
+						119 文本栏 (settable) URL: file:///Users/<user>/Downloads/PyPI-API-Token.txt, Value: PyPI-API-Token.txt, Secondary Actions: 打开“访达”项目
+					120 单元格 (selected)
+						121 文本 180 字节
+					122 单元格 (selected)
+						123 文本 纯文本文稿
+					124 单元格 (selected)
+						125 文本 2026年3月26日 00:50
+				126 row (selected)
+					127 单元格 (selected) Secondary Actions: 打开“访达”项目
+						128 图像
+						129 文本栏 (settable) URL: file:///Users/<user>/Downloads/PyPI-Recovery-Codes-gxcsoccer-2026-03-25T16_48_21.815330.txt, Value: PyPI-Recovery-Codes-gxcsoccer-2026-03-25T16_48_21.815330.txt, Secondary Actions: 打开“访达”项目
+					130 单元格 (selected)
+						131 文本 135 字节
+					132 单元格 (selected)
+						133 文本 纯文本文稿
+					134 单元格 (selected)
+						135 文本 2026年3月26日 00:48
+				136 row (selected)
+					137 单元格 (selected) Secondary Actions: 打开“访达”项目
+						138 图像
+						139 文本栏 (settable) Value: 《玫瑰色的你》张悬.m4a, Secondary Actions: 打开“访达”项目, URL: file:///Users/<user>/Downloads/%E3%80%8A%E7%8E%AB%E7%91%B0%E8%89%B2%E7%9A%84%E4%BD%A0%E3%80%8B%E5%BC%A0%E6%82%AC.m4a

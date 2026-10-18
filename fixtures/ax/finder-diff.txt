@@ -1,0 +1,24 @@
+The following is a diff from the previous accessibility tree for Window: "下载" with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.
+Removed element IDs: 227-230
++	239 文本 下载
++	240 菜单按钮 窗口共享
+Selected:
+	35 row (selected)
+	45 row (selected)
+	55 row (selected)
+	65 row (selected)
+	75 row (selected)
+	85 row (selected, collapsed) Secondary Actions: Expand
+	96 row (selected)
+	106 row (selected)
+	116 row (selected)
+	126 row (selected)
+	136 row (selected)
+	146 row (selected)
+	156 row (selected, collapsed) Secondary Actions: Expand
+	167 row (selected)
+	177 row (selected)
+	187 row (selected)
+	197 row (selected)
+
+Note: Pay special attention to the content selected by the user. If the user asks a question or refers to the content they are looking at on-screen, they might be referring to the selected content (but they might be referring to something else that's visible, too).

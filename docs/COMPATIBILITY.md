@@ -61,6 +61,29 @@ output; the protocol document pins the semantics.
   file configured everything is allowed, which differs from the original's
   first-use prompt; the file format is documented in `docs/PROTOCOL.md`.
 
+## AX text format (observed)
+
+The renderer follows captured output (`fixtures/ax/`):
+
+```
+Window: "下载", App: 访达.
+0 标准窗口 下载, ID: FinderWindow, Secondary Actions: Raise
+	4 row (selectable) Description: 时钟, Value: 最近使用
+		26 滚动条 (settable, float) 0
+```
+
+- roles use the **localized role description** (`kAXRoleDescription`), not `AXRole`;
+- states in parentheses: `disabled`, `selected`/`selectable`, `expanded`/`collapsed`,
+  `settable`, `float`;
+- optional `Description:`, `ID:`, `URL:`, `Value:` (numbers are bare), and
+  `Secondary Actions:` (press excluded);
+- tabs for depth, `Window: ..., App: ....` header;
+- diffs: header, `Removed element IDs`, `+`/`~` + tab + line, `Selected:` block,
+  and the "Pay special attention..." note.
+
+`service/Tests/CodexCUTests/FormatParityTests.swift` pins each of these against
+the captured fixtures.
+
 ## M3 semantics
 
 - **Skyshot**: `SCScreenshotManager` captures the app's first on-screen window,

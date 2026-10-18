@@ -45,7 +45,7 @@ private func makeObservationHandlers(snapshots: [[AXTree.Node]],
 @Test func firstObservationReturnsFullTextAndScreenshot() throws {
   let (handlers, store) = makeObservationHandlers(snapshots: [nodes([(0, "AXWindow", "Finder")])])
   let result = try handlers.appState("com.test.app", disableDiff: false)
-  #expect(result["text"] as? String == AXTree.render(nodes([(0, "AXWindow", "Finder")])))
+  #expect(result["text"] as? String == AXTree.render(nodes([(0, "AXWindow", "Finder")]), app: "com.test.app", window: ""))
   let skyshot = result["skyshot"] as? [String: Any]
   let screenshot = skyshot?["screenshot"] as? [String: Any]
   #expect((screenshot?["url"] as? String)?.hasPrefix("file://") == true)
@@ -66,8 +66,8 @@ private func makeObservationHandlers(snapshots: [[AXTree.Node]],
   let text = secondResult["text"] as? String ?? ""
 
   #expect(text.contains("diff from the previous"))
-  #expect(text.contains("~ 1 AXButton \"Back\""))
-  #expect(text.contains("+ 2 AXButton \"New\""))
+  #expect(text.contains("~\t1 AXButton Back"))
+  #expect(text.contains("+\t2 AXButton New"))
   #expect(!FileManager.default.fileExists(atPath: firstURL?.path ?? ""))
   let secondURL = URL(string: ((secondResult["skyshot"] as? [String: Any])?["screenshot"] as? [String: Any])?["url"] as? String ?? "")
   #expect(FileManager.default.fileExists(atPath: secondURL?.path ?? ""))

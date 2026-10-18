@@ -37,6 +37,12 @@ black-box experiments. No OpenAI source code was read or copied.
    observation; without it, `SCStream` fails with `-3811`. Application approvals
    are stored in `ComputerUseAppApprovals.json` keyed by bundle identifier.
 
+8. **AX text format** — captured from a real Finder session (see `fixtures/ax/`):
+   localized role descriptions, parenthesized states, `Description/ID/URL/Value`
+   fields, `Secondary Actions`, tab indentation, `Window:/App:` header, and a diff
+   format with removed-ID ranges, `+`/`~` + tab, and a `Selected:` block with an
+   explanatory note.
+
 ## What we could not observe
 
 - The exact response JSON for `AppGetSkyshot` and `PerformAction` (the service

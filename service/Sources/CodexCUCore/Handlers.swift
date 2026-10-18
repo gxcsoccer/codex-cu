@@ -83,6 +83,8 @@ public final class DefaultHandlers: ServiceHandlers {
     let pid = try pidForApp(app)
     let snapshot = try snapshotProvider(pid)
     let previous = store.nodes(for: app)
+    let appName = NSRunningApplication(processIdentifier: pid)?.localizedName ?? app
+    let windowTitle = AXTree.frontWindowTitle(pid: pid)
 
     var skyshot: Any = NSNull()
     var screenshotURL: URL?
@@ -92,8 +94,10 @@ public final class DefaultHandlers: ServiceHandlers {
       skyshot = ["screenshot": ["url": screenshotURL!.absoluteString, "mimeType": "image/png"]]
     }
 
-    let text = (!disableDiff ? previous.map { AXDiff.render(previous: $0, current: snapshot.nodes, app: app) } : nil)
-      ?? AXTree.render(snapshot.nodes)
+    let text = (!disableDiff
+      ? previous.map { AXDiff.render(previous: $0, current: snapshot.nodes, app: appName, window: windowTitle) }
+      : nil)
+      ?? AXTree.render(snapshot.nodes, app: appName, window: windowTitle)
     let previousScreenshotURL = store.screenshotURL(for: app)
     let revision = store.put(app: app, elements: snapshot.elements, nodes: snapshot.nodes, screenshotURL: screenshotURL)
     screenshotStore.remove(previousScreenshotURL)
