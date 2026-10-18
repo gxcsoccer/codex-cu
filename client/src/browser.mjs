@@ -19,6 +19,10 @@ const NAMED_KEYS = {
   end: { key: 'End', code: 'End', windowsVirtualKeyCode: 35 },
   pageup: { key: 'PageUp', code: 'PageUp', windowsVirtualKeyCode: 33 },
   pagedown: { key: 'PageDown', code: 'PageDown', windowsVirtualKeyCode: 34 },
+  arrowup: { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 },
+  arrowdown: { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 },
+  arrowleft: { key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 },
+  arrowright: { key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 },
 };
 
 const MODIFIERS = { alt: 1, option: 1, ctrl: 2, control: 2, meta: 4, cmd: 4, command: 4, shift: 8 };
