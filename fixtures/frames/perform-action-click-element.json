@@ -1,0 +1,20 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "request",
+  "params": {
+    "clientApiVersion": "CodexComputerUseIPC-5",
+    "deadlineUnixMilliseconds": 121000,
+    "requestType": "ComputerUseIPCAppPerformActionRequest",
+    "request": {
+      "app": "com.apple.finder",
+      "action": {
+        "click": {
+          "at": { "elementID": { "_0": "42" } },
+          "clickCount": 1,
+          "mouseButton": 0
+        }
+      }
+    }
+  }
+}

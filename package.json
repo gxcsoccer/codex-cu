@@ -1,0 +1,15 @@
+{
+  "name": "codex-cu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Clean-room, protocol-compatible reimplementation of Codex Computer Use",
+  "type": "module",
+  "scripts": {
+    "test": "node --test client/test/*.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage client/test/*.test.mjs",
+    "build:service": "swift build --package-path service",
+    "test:service": "bash scripts/test-service.sh",
+    "test:integration": "node --test client/test/integration.test.mjs",
+    "test:all": "npm test && npm run build:service && npm run test:integration && npm run test:service"
+  }
+}
