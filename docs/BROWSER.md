@@ -40,6 +40,8 @@ const cua = new Cua({
 | `getAXState()` | `Accessibility.getFullAXTree`, ignored nodes skipped |
 | `getScreenshot()` / `screenshot({fullPage, clip})` | `Page.captureScreenshot`, optional `captureBeyondViewport` / `clip` |
 | `title()` / `url()` | `Runtime.evaluate` on `document.title` / `location.href` |
+| `domSnapshot()` | `document.documentElement.outerHTML` |
+| `elementInfo(x, y)` | `elementFromPoint` → tag/role/aria/testid/text/box |
 | `click(index)` / `click([x,y])` | AX `backendDOMNodeId` → `DOM.getBoxModel` center, then mouse events |
 | `scroll(index \| [x,y], dir, n)` | element center or coordinate + `mouseWheel` |
 | `typeText(index?, text)` | optional `DOM.focus` then `Input.insertText` |

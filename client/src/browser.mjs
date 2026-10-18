@@ -218,6 +218,29 @@ export class BrowserTab {
     return new Uint8Array(Buffer.from(data, 'base64'));
   }
 
+  async domSnapshot() {
+    return this.evaluate('document.documentElement.outerHTML');
+  }
+
+  async elementInfo(x, y) {
+    if (![x, y].every((value) => Number.isFinite(value))) {
+      throw new TypeError('elementInfo requires finite x and y');
+    }
+    return this.evaluate(`(() => {
+      const el = document.elementFromPoint(${Number(x)}, ${Number(y)});
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      return {
+        tagName: el.tagName.toLowerCase(),
+        role: el.getAttribute('role'),
+        ariaName: el.getAttribute('aria-label'),
+        testId: el.getAttribute('data-testid'),
+        text: (el.innerText || el.textContent || '').slice(0, 200),
+        box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      };
+    })()`);
+  }
+
   async title() {
     const { result } = await this.connection.send('Runtime.evaluate', {
       expression: 'document.title', returnByValue: true,

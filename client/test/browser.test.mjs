@@ -256,3 +256,25 @@ test('playwright locator subset drives the page through Runtime.evaluate', async
   assert.ok(evaluated.some((expression) => expression.includes('document.querySelector("#submit")')));
   assert.ok(connection.calls.some((call) => call.method === 'Input.insertText'));
 });
+
+test('domSnapshot and elementInfo run in the page', async () => {
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Runtime.evaluate': (params) => {
+      if (params.expression.includes('outerHTML')) return { result: { value: '<html><body>hi</body></html>' } };
+      if (params.expression.includes('elementFromPoint')) {
+        return { result: { value: { tagName: 'button', role: null, ariaName: 'Go', testId: 'go', text: 'Go', box: { x: 1, y: 2, width: 3, height: 4 } } } };
+      }
+      return { result: { value: null } };
+    },
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  assert.equal(await tab.domSnapshot(), '<html><body>hi</body></html>');
+  const info = await tab.elementInfo(10, 20);
+  assert.equal(info.tagName, 'button');
+  assert.equal(info.testId, 'go');
+  await assert.rejects(() => tab.elementInfo('x', 2), /finite/);
+});
