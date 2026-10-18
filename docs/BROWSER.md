@@ -43,11 +43,12 @@ const cua = new Cua({
 | `scroll(index \| [x,y], dir, n)` | element center or coordinate + `mouseWheel` |
 | `typeText(index?, text)` | optional `DOM.focus` then `Input.insertText` |
 | `setValue(index, value)` | `Runtime.callFunctionOn` sets value + input/change events |
+| `selectText(index, text, {selectionType, prefix, suffix})` | page-side search with prefix/suffix, then `setSelectionRange` |
 | `selectText(index, text, {selectionType})` | `Runtime.callFunctionOn` + `setSelectionRange` |
 | `pressKey(index?, key)` | optional focus then key events |
 | `drag(from, to)` | mousePressed/moved/released |
 | `typeText(text)` | `Input.insertText` (layout independent) |
-| `pressKey(key)` | `Input.dispatchKeyEvent` for Enter/Tab/Escape/Backspace/arrows/single chars |
+| `pressKey(index?, key)` | `Input.dispatchKeyEvent`; supports chords (`cmd+shift+a`), named keys, arrows and F1–F12, with the CDP modifier bitmask |
 | `markDeliverable()` | local flag |
 
 ## Environment note
@@ -67,7 +68,7 @@ whole browser surface against a real WebSocket CDP server implementation
 - `performSecondaryAction` is not implemented for tabs (CDP has no direct
   equivalent of an accessibility secondary action) and throws explicitly.
 - `paste` is implemented as focus + `Input.insertText`; it does not write the
-  system clipboard.
+  system clipboard and does not preserve rich text formats.
 - The original can also drive `iab` (in-app browser), extension-backed tabs and
   MCP apps; this provider only speaks CDP.
 - The browser documentation string is synthesized, not the original's

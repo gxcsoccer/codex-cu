@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CdpBrowserProvider, BrowserTab, formatAXTree } from '../src/browser.mjs';
+import { CdpBrowserProvider, BrowserTab, formatAXTree, parseKeyChord } from '../src/browser.mjs';
 import { Cua } from '../src/cua.mjs';
 import { startMockServer } from './helpers/mock-server.mjs';
 
@@ -100,7 +100,11 @@ test('creates a tab and drives it', async () => {
 
   await tab.pressKey(3, 'Enter');
   assert.equal(connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').length, 2);
-  await assert.rejects(() => tab.pressKey('Hyper+Space'), /unsupported browser key/);
+  await tab.pressKey(3, 'cmd+shift+a');
+  const chord = connection.calls.filter((call) => call.method === 'Input.dispatchKeyEvent').at(-1);
+  assert.equal(chord.params.modifiers, 12);
+  assert.equal(chord.params.key, 'a');
+  await assert.rejects(() => tab.pressKey('Hyper+Space'), /unknown modifier/);
   await assert.rejects(() => tab.performSecondaryAction(3, 'Raise'), /not supported for browser tabs/);
 });
 
@@ -154,4 +158,35 @@ test('reports non-browser CDP endpoints clearly', async () => {
 
 test('formatAXTree skips ignored nodes', () => {
   assert.equal(formatAXTree([{ nodeId: 9, ignored: false, role: { value: 'button' }, name: { value: 'OK' } }]), '\t9 button OK');
+});
+
+test('selectText forwards prefix and suffix to the page script', async () => {
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Accessibility.getFullAXTree': { nodes: [
+      { nodeId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'textbox' }, name: { value: 'q' } },
+    ] },
+    'DOM.resolveNode': { object: { objectId: 'O1' } },
+    'Runtime.callFunctionOn': { result: { value: true } },
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  await tab.getAXState();
+  await tab.selectText(1, 'hello', { prefix: 'say ', suffix: ' now', selectionType: 'cursor_after' });
+  const call = connection.calls.filter((c) => c.method === 'Runtime.callFunctionOn').at(-1);
+  assert.deepEqual(call.params.arguments, [{ value: 'hello' }, { value: 'cursor_after' }, { value: 'say ' }, { value: ' now' }]);
+});
+
+test('parseKeyChord covers modifiers, named keys and F-keys', () => {
+  assert.deepEqual(parseKeyChord('cmd+shift+a'), {
+    key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 12,
+  });
+  assert.equal(parseKeyChord('enter').key, 'Enter');
+  assert.equal(parseKeyChord('f5').key, 'F5');
+  assert.equal(parseKeyChord('ctrl+arrowleft').modifiers, 2);
+  assert.equal(parseKeyChord('ArrowLeft').key, 'ArrowLeft');
+  assert.throws(() => parseKeyChord('hyper+x'), /unknown modifier/);
+  assert.throws(() => parseKeyChord('cmd+'), /unsupported browser key/);
 });

@@ -3,16 +3,47 @@
 // Chrome's DevTools Protocol instead of the original's Playwright/WASM stack.
 import { CdpConnection } from './cdp.mjs';
 
-const KEY_CODES = {
-  Enter: { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 },
-  Tab: { key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 },
-  Escape: { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 },
-  Backspace: { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 },
-  ArrowUp: { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 },
-  ArrowDown: { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 },
-  ArrowLeft: { key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 },
-  ArrowRight: { key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 },
+const NAMED_KEYS = {
+  enter: { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 },
+  tab: { key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 },
+  escape: { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 },
+  esc: { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 },
+  backspace: { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 },
+  delete: { key: 'Delete', code: 'Delete', windowsVirtualKeyCode: 46 },
+  space: { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 },
+  up: { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 },
+  down: { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 },
+  left: { key: 'ArrowLeft', code: 'ArrowLeft', windowsVirtualKeyCode: 37 },
+  right: { key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 },
+  home: { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 },
+  end: { key: 'End', code: 'End', windowsVirtualKeyCode: 35 },
+  pageup: { key: 'PageUp', code: 'PageUp', windowsVirtualKeyCode: 33 },
+  pagedown: { key: 'PageDown', code: 'PageDown', windowsVirtualKeyCode: 34 },
 };
+
+const MODIFIERS = { alt: 1, option: 1, ctrl: 2, control: 2, meta: 4, cmd: 4, command: 4, shift: 8 };
+
+export function parseKeyChord(spec) {
+  const tokens = String(spec).split('+').map((token) => token.trim().toLowerCase()).filter(Boolean);
+  if (tokens.length === 0) throw new Error('key is required');
+  const keyName = tokens.at(-1);
+  let modifiers = 0;
+  for (const token of tokens.slice(0, -1)) {
+    if (!(token in MODIFIERS)) throw new Error(`unknown modifier: ${token}`);
+    modifiers |= MODIFIERS[token];
+  }
+  if (NAMED_KEYS[keyName]) return { ...NAMED_KEYS[keyName], modifiers };
+  if (/^[a-z]$/.test(keyName)) {
+    return { key: keyName, code: `Key${keyName.toUpperCase()}`, windowsVirtualKeyCode: keyName.toUpperCase().charCodeAt(0), modifiers };
+  }
+  if (/^[0-9]$/.test(keyName)) {
+    return { key: keyName, code: `Digit${keyName}`, windowsVirtualKeyCode: keyName.charCodeAt(0), modifiers };
+  }
+  if (/^f([1-9]|1[0-2])$/.test(keyName)) {
+    return { key: keyName.toUpperCase(), code: keyName.toUpperCase(), windowsVirtualKeyCode: 111 + Number(keyName.slice(1)), modifiers };
+  }
+  throw new Error(`unsupported browser key: ${spec}`);
+}
 
 export class BrowserTab {
   constructor({ connection, targetId, sessionId, info = {} }) {
@@ -134,9 +165,9 @@ export class BrowserTab {
     if (!changed) throw new Error(`could not set value on element ${index}`);
   }
 
-  async selectText(index, text, { selectionType = 'text' } = {}) {
-    const ok = await this.callOn(index, 'function(text, type){ const start = this.value.indexOf(text); if (start < 0) return false; const end = start + text.length; const cursor = type === "cursor_before" ? start : end; this.focus(); this.setSelectionRange(type === "text" ? start : cursor, type === "text" ? end : cursor); return true; }', [text, selectionType]);
-    if (!ok) throw new Error(`text not found in element ${index}`);
+  async selectText(index, text, { selectionType = 'text', prefix, suffix } = {}) {
+    const ok = await this.callOn(index, 'function(text, type, prefix, suffix){ const value = String(this.value ?? this.textContent ?? ""); let from = 0; for (;;) { const start = value.indexOf(text, from); if (start < 0) return false; const end = start + text.length; const before = start - (prefix ? prefix.length : 0); const after = end + (suffix ? suffix.length : 0); const prefixOK = !prefix || (before >= 0 && value.slice(before, start) === prefix); const suffixOK = !suffix || (after <= value.length && value.slice(end, after) === suffix); if (prefixOK && suffixOK) { const cursor = type === "cursor_before" ? start : end; this.focus(); this.setSelectionRange(type === "text" ? start : cursor, type === "text" ? end : cursor); return true; } from = start + Math.max(1, text.length); } }', [text, selectionType, prefix ?? null, suffix ?? null]);
+    if (!ok) throw new Error(`text not found in element ${index}${prefix ? ` after prefix` : ''}${suffix ? ` before suffix` : ''}`);
   }
 
   async drag(from, to) {
@@ -148,10 +179,7 @@ export class BrowserTab {
   async pressKey(index, key) {
     if (typeof index !== 'number') { key = index; index = null; }
     if (index !== null) await this.focus(index);
-    const spec = KEY_CODES[key] ?? (/^[a-zA-Z0-9]$/.test(key)
-      ? { key, code: `Key${key.toUpperCase()}`, windowsVirtualKeyCode: key.toUpperCase().charCodeAt(0) }
-      : null);
-    if (!spec) throw new Error(`unsupported browser key: ${key}`);
+    const spec = parseKeyChord(key);
     for (const type of ['keyDown', 'keyUp']) {
       await this.connection.send('Input.dispatchKeyEvent', { type, ...spec }, this.sessionId);
     }
