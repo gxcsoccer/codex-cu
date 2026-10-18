@@ -122,6 +122,13 @@ test('cua reports a missing browser provider', async () => {
   }
 });
 
+test('reports non-browser CDP endpoints clearly', async () => {
+  const provider = new CdpBrowserProvider({
+    fetchImpl: async () => ({ ok: true, json: async () => ({ Browser: 'aha-runtime' }) }),
+  });
+  await assert.rejects(() => provider.getBrowser(), /not a browser CDP/);
+});
+
 test('formatAXTree skips ignored nodes', () => {
   assert.equal(formatAXTree([{ nodeId: 9, ignored: false, role: { value: 'button' }, name: { value: 'OK' } }]), '\t9 button OK');
 });

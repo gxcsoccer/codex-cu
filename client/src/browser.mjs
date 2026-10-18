@@ -158,7 +158,9 @@ export class CdpBrowserProvider {
   async connection() {
     if (this.connections.has('cdp')) return this.connections.get('cdp');
     const version = await this.getJson('/json/version');
-    if (!version.webSocketDebuggerUrl) throw new Error('CDP endpoint did not report webSocketDebuggerUrl');
+    if (!version.webSocketDebuggerUrl) {
+      throw new Error(`endpoint is not a browser CDP (no webSocketDebuggerUrl; Browser=${version.Browser ?? 'unknown'})`);
+    }
     const connection = await this.connect(version.webSocketDebuggerUrl);
     this.connections.set('cdp', connection);
     return connection;

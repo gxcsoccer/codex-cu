@@ -44,6 +44,15 @@ const cua = new Cua({
 | `pressKey(key)` | `Input.dispatchKeyEvent` for Enter/Tab/Escape/Backspace/arrows/single chars |
 | `markDeliverable()` | local flag |
 
+## Environment note
+
+The Chrome installed on the development machine is a 367 KB stub that starts a
+custom `aha-runtime`; its `/json/version` reports `Browser: aha-runtime` and no
+`webSocketDebuggerUrl`, so it cannot serve as a CDP browser. Live browser
+verification therefore has not been run here; the provider is covered by unit
+tests with a fake CDP connection, and the WebSocket transport has its own tests
+(`client/test/cdp.test.mjs`).
+
 ## Gaps vs the original
 
 - **Element-index clicks/typing are not implemented for tabs.** The original
