@@ -47,7 +47,7 @@ Action semantics:
 | paste | clipboard + cmd+v | same | `ActionTests` |
 | setValue / selectText | AX attributes | same | `ActionTests` |
 | secondaryAction | AX action | same | `ActionTests` |
-| stale element IDs | rejected | `-10008` | `staleElementIDsAreRejectedAfterAnAction` |
+| stale element IDs | refetch by criteria; unique match reused, otherwise "no longer valid"/"multiple elements" | same behaviour and messages, `-10008` (code inferred) | `RefetchTests`, live Finder scroll |
 
 ## Browser surface
 

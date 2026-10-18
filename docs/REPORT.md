@@ -81,9 +81,10 @@ Key properties, all implemented and pinned by `FormatParityTests`:
 
 Element IDs are **stable per element for the process lifetime** (a registry keyed
 by the AX element), which is why real captures show gaps such as 0, 4, 26. Diffs
-therefore report genuine removals instead of ID churn. Actions invalidate the
-snapshot; reusing an ID returns `-10008`, matching the client's "fresh refs"
-contract.
+therefore report genuine removals instead of ID churn. After an action invalidates
+the snapshot, an old ID is **refetched by criteria** (role/identifier/title/
+description): a unique match is reused, otherwise the observed "no longer valid"
+or "multiple elements" message is returned.
 
 ## 5. Native actions
 

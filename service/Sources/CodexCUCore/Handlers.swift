@@ -319,7 +319,44 @@ public final class DefaultHandlers: ServiceHandlers {
 
   private func resolveElement(app: String, id: Any?) throws -> AXUIElement {
     guard let id else { throw ServiceError(.couldNotGetRequestData, "elementID is required") }
-    return try store.resolve(app: app, elementID: try parseInt(id))
+    let elementID = try parseInt(id)
+    do {
+      return try store.resolve(app: app, elementID: elementID)
+    } catch {
+      return try refetchElement(app: app, elementID: elementID)
+    }
+  }
+
+  /// The service keeps a refetchable tree: after invalidation it re-observes and
+  /// locates the element by its stable criteria. A unique match is reused; zero
+  /// or multiple matches return the observed messages.
+  private func refetchElement(app: String, elementID: Int) throws -> AXUIElement {
+    guard let previous = store.nodes(for: app) else {
+      throw ServiceError(.accessibilityError,
+                         "no observation for \(app); call getAppState first")
+    }
+    guard let criteria = previous.first(where: { $0.id == elementID }) else {
+      throw ServiceError(.accessibilityError,
+                         "The element ID is no longer valid. Try to get the on-screen content again and see if that resolves the issue.")
+    }
+    let screenshot = store.screenshotURL(for: app)
+    let snapshot = try snapshotProvider(try pidForApp(app))
+    store.put(app: app, elements: snapshot.elements, nodes: snapshot.nodes, screenshotURL: screenshot)
+    let matches = snapshot.nodes.filter { node in
+      node.role == criteria.role
+        && node.identifier == criteria.identifier
+        && node.title == criteria.title
+        && node.description == criteria.description
+    }
+    if matches.count > 1 {
+      throw ServiceError(.accessibilityError,
+                         "The element was invalidated, and an attempt was made to refetch it, but the refetch couldn't be finished because multiple elements were found that match the criteria. Try to get the on-screen content again and see if that resolves the issue.")
+    }
+    guard let match = matches.first, let element = snapshot.elements[match.id] else {
+      throw ServiceError(.accessibilityError,
+                         "The element ID is no longer valid. Try to get the on-screen content again and see if that resolves the issue.")
+    }
+    return element
   }
 
   private func parseInt(_ value: Any) throws -> Int {

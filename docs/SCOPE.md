@@ -55,6 +55,7 @@ Playwright-cached **Chrome for Testing**; the service itself is unchanged.
 | Audio live capture verification | now PASS on this machine (`live-check --audio`) |
 | Windows-specific `list_windows`/`get_window` | macOS client exposes no window-scoped bindings either |
 | Exact response schemas for `AppGetSkyshot`/`PerformAction` beyond consumed fields | not observable without an entitled peer |
+| Refetch error codes | messages observed, code `-10008` inferred |
 
 ## How to judge completion
 
