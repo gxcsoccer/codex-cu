@@ -128,7 +128,10 @@ await tab.playwright.getByLabel('Email').fill('a@b.c');
 
 - `playwright-core` is imported dynamically; if it is not installed, the macOS
   ChatGPT bundle copy is used as a fallback. For a standalone install run
-  `npm install playwright-core`.
+  `npm install` (the optional dependency pins `playwright-core@1.57.0`).
+- **The engine version is pinned.** A different version fails closed with a clear
+  error; `CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT=1` (or `CODEX_CU_PLAYWRIGHT_VERSION`)
+  overrides it deliberately.
 - Accessibility text and element-index input still use the CDP session, so
   `getAXState()`/`click(index)` keep the same shapes as the CDP backend.
 - `provider.close()` disconnects without terminating Chrome (verified live).

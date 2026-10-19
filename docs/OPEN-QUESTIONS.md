@@ -138,10 +138,9 @@ types expose `list_windows`/`get_window`.
 
 ### 17. Playwright version drift
 
-**Evidence**: the app bundles `playwright-core 1.57`.
-**Current**: dynamic import of `playwright-core`, falling back to the macOS app
-bundle. A future app update may change engine behaviour.
-**Settle it**: pin a version or vendor the module.
+**Status: resolved.** `playwright-core@1.57.0` is an optional dependency and the
+loader fails closed on a different version (`CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT=1`
+overrides). The macOS bundle fallback is checked the same way.
 
 ### 18. Live verification prerequisites
 

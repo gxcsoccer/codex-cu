@@ -2,17 +2,40 @@
 // plus a WASM accessibility layer; this backend uses the real Playwright engine
 // (same version the app ships, 1.57) over CDP, while accessibility text and
 // element-index actions keep using the CDP session.
+import { readFileSync } from 'node:fs';
 import { BrowserTab, formatAXTree } from './browser.mjs';
 
 const BUNDLED_PLAYWRIGHT = '/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules/playwright-core/index.mjs';
+export const PINNED_PLAYWRIGHT_VERSION = '1.57.0';
+
+function packageVersion(entryURL) {
+  const url = new URL('./package.json', entryURL);
+  return JSON.parse(readFileSync(url, 'utf8')).version;
+}
+
+/** Fails closed on engine drift; CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT=1 opts out. */
+export function assertPlaywrightVersion(version, source) {
+  const expected = process.env.CODEX_CU_PLAYWRIGHT_VERSION ?? PINNED_PLAYWRIGHT_VERSION;
+  if (version === expected) return version;
+  if (process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT === '1') return version;
+  throw new Error(`playwright-core ${version} at ${source} does not match the pinned ${expected}; set CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT=1 to override`);
+}
 
 export async function loadPlaywright(moduleName = 'playwright-core') {
   try {
-    return await import(moduleName);
+    const entry = import.meta.resolve(moduleName);
+    const module = await import(moduleName);
+    assertPlaywrightVersion(packageVersion(entry), entry);
+    return module;
   } catch (error) {
+    if (String(error?.message ?? '').includes('does not match the pinned')) throw error;
     try {
-      return await import(BUNDLED_PLAYWRIGHT);
-    } catch {
+      const entry = new URL(`file://${BUNDLED_PLAYWRIGHT}`);
+      const module = await import(entry.href);
+      assertPlaywrightVersion(packageVersion(entry), entry.href);
+      return module;
+    } catch (fallbackError) {
+      if (String(fallbackError?.message ?? '').includes('does not match the pinned')) throw fallbackError;
       throw new Error(`playwright-core is required for the Playwright backend (${error.message})`);
     }
   }

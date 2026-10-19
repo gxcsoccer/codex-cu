@@ -1,7 +1,7 @@
 import test from 'node:test';
 import http from 'node:http';
 import assert from 'node:assert/strict';
-import { toPlaywrightChord, PlaywrightBrowserProvider } from '../src/browser-playwright.mjs';
+import { toPlaywrightChord, PlaywrightBrowserProvider, assertPlaywrightVersion, loadPlaywright } from '../src/browser-playwright.mjs';
 
 test('toPlaywrightChord maps modifiers and keys', () => {
   assert.equal(toPlaywrightChord('cmd+shift+a'), 'Meta+Shift+A');
@@ -150,5 +150,19 @@ test('nested cross-site iframes merge recursively', { skip: !endpoint }, async (
     await new Promise((resolve) => deep.close(resolve));
     await new Promise((resolve) => middle.close(resolve));
     await new Promise((resolve) => outer.close(resolve));
+  }
+});
+
+test('Playwright version is pinned and drift fails closed', () => {
+  const saved = process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT;
+  try {
+    delete process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT;
+    assert.equal(assertPlaywrightVersion('1.57.0', 'test'), '1.57.0');
+    assert.throws(() => assertPlaywrightVersion('1.58.0', 'test'), /does not match the pinned/);
+    process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT = '1';
+    assert.equal(assertPlaywrightVersion('1.58.0', 'test'), '1.58.0');
+  } finally {
+    if (saved === undefined) delete process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT;
+    else process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT = saved;
   }
 });

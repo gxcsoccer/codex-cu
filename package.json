@@ -4,6 +4,9 @@
   "private": true,
   "description": "Clean-room, protocol-compatible reimplementation of Codex Computer Use",
   "type": "module",
+  "optionalDependencies": {
+    "playwright-core": "1.57.0"
+  },
   "scripts": {
     "test": "node --test client/test/*.test.mjs tools/test/*.test.mjs",
     "test:coverage": "node --test --experimental-test-coverage client/test/*.test.mjs",
