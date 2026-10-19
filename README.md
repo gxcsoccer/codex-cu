@@ -16,6 +16,10 @@ protocol as the original.
 - [docs/CONFORMANCE.md](docs/CONFORMANCE.md) — per-feature implementation and test
   evidence.
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) — wire format.
+- [docs/OVERVIEW.md](docs/OVERVIEW.md) — documentation map, verification snapshot
+  and the problems found while building this.
+- [docs/OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md) — every unresolved question,
+  with evidence and how to settle it.
 
 ## Why
 
