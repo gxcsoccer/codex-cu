@@ -38,6 +38,9 @@ service/    Swift package: Unix socket server, framing, JSON-RPC, AX + input
 client/     Node client: framing, request envelopes, high-level API
 docs/       protocol spec, evidence, compatibility matrix
 fixtures/   recorded frames used as golden tests
+mcp/        MCP stdio server (28 tools) for agent integration
+skill/      codex-cu skill manifest (SKILL.md)
+scripts/    install, verify, live-check, build-app
 ```
 
 ## Quick start
@@ -89,6 +92,16 @@ console.log(await tab.getAXState());
 
 The provider talks CDP to a Chrome started with `--remote-debugging-port`. See
 `docs/BROWSER.md` for supported methods and gaps.
+
+## Agent integration (MCP + skill + app)
+
+- **MCP server**: `node mcp/server.mjs --socket /tmp/codex-cu.sock` exposes 28
+  native/browser/audio tools over stdio.
+- **Skill**: `skill/codex-cu/SKILL.md` (copy into your agent's skills directory).
+- **App bundle**: `scripts/build-app.sh` builds `dist/Codex CU.app` so macOS TCC
+  grants attach to a bundle.
+
+See [docs/MCP.md](docs/MCP.md) for configuration and the end-to-end check.
 
 ## Live verification
 

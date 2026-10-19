@@ -21,6 +21,7 @@ artifacts we could observe; literal source equality is not possible.
 | [SCOPE.md](SCOPE.md) | Replicated / deliberate deviations / blocked / not attempted |
 | [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) | Unresolved questions with evidence and how to settle them |
 | [BROWSER.md](BROWSER.md) | CDP and Playwright backends, AX text, frames, locators, paste |
+| [MCP.md](MCP.md) | MCP server, skill manifest, `.app` bundle, agent configuration |
 | [AUDIO.md](AUDIO.md) | Loopback recording protocol, SCK backend, WAV details |
 | [INSTALL.md](INSTALL.md) | Install, LaunchAgent, approvals, instructions |
 | [LIVE-VERIFICATION.md](LIVE-VERIFICATION.md) | TCC steps and the six live checks |
@@ -43,6 +44,9 @@ artifacts we could observe; literal source equality is not possible.
 - **Audio**: ScreenCaptureKit loopback, 24 kHz stereo WAV, auto-stop, late-stop
   returns the finished file.
 - **Packaging**: LaunchAgent with `CODEX_CU_ARGS`, install script, plists.
+- **Agent integration**: MCP stdio server (28 tools), skill manifest
+  (`skill/codex-cu/SKILL.md`), and `scripts/build-app.sh` for a TCC-addressable
+  `Codex CU.app`.
 
 ## Verification snapshot
 

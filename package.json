@@ -8,11 +8,13 @@
     "playwright-core": "1.57.0"
   },
   "scripts": {
-    "test": "node --test client/test/*.test.mjs tools/test/*.test.mjs",
+    "test": "node --test client/test/*.test.mjs tools/test/*.test.mjs mcp/test/*.test.mjs",
     "test:coverage": "node --test --experimental-test-coverage client/test/*.test.mjs",
     "build:service": "swift build --package-path service",
     "test:service": "bash scripts/test-service.sh",
     "test:integration": "node --test client/test/integration.test.mjs",
+    "mcp": "node mcp/server.mjs",
+    "app": "bash scripts/build-app.sh",
     "test:all": "npm test && npm run build:service && npm run test:integration && npm run test:service"
   }
 }
