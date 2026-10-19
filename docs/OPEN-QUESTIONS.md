@@ -18,12 +18,11 @@ tree; the trigger is server-side and no shipped client option selects it.
 
 ### 2. AX invalidation monitor
 
-**Evidence**: `RefetchableSkyshotAXTree`, `RefetchableUIElement`, and
-`The skyshot is unexpectedly missing an invalidation monitor`.
-**Current**: refetch on demand by role/identifier/title/description; no
-`AXObserver` notification stream.
-**Settle it**: drive the original service while an external process changes the
-UI and compare when it returns stale-vs-refetched results.
+**Status: implemented on our side.** `AXInvalidationMonitor` runs an `AXObserver`
+on a dedicated run-loop thread (value/destroy/focus/window notifications,
+50 ms debounce) and invalidates the snapshot; the existing refetch-by-criteria
+path then repairs element ids. The original's exact notification set and
+debounce interval remain unknown.
 
 ### 3. App-instruction bundle mapping
 

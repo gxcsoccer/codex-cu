@@ -47,11 +47,13 @@ artifacts we could observe; literal source equality is not possible.
 ## Verification snapshot
 
 ```
-Swift tests:            73
-Node tests:             83 (5 live tests skipped by default)
+Swift tests:            75
+Node tests:             86 (6 live tests skipped by default)
 Integration (socket):    7
-Live check (this Mac):  ping, listApps, getAppState, screenshot (247 KB),
+Live check (this Mac):  ping, listApps, getAppState, screenshot,
                         audio (24 kHz stereo WAV), browser (Chrome 149)
+Extra live coverage:    three-level nested OOPIFs, frame-id stability,
+                        stale-id refetch with the AX monitor active
 CI:                     GitHub Actions macos-15, green
 ```
 

@@ -22,6 +22,7 @@ public final class DefaultHandlers: ServiceHandlers {
   private var lastAudioURL: URL?
   private var audioTimer: DispatchSourceTimer?
   private let audioLock = NSLock()
+  private let invalidationMonitor = AXInvalidationMonitor()
 
   public init(approvalsURL: URL? = nil,
               store: SnapshotStore = SnapshotStore(),
@@ -144,6 +145,9 @@ public final class DefaultHandlers: ServiceHandlers {
       ?? AXTree.render(snapshot.nodes, app: appName, window: windowTitle)
     let previousScreenshotURL = store.screenshotURL(for: app)
     let revision = store.put(app: app, elements: snapshot.elements, nodes: snapshot.nodes, screenshotURL: screenshotURL)
+    invalidationMonitor.watch(app: app, pid: pid) { [weak self] in
+      self?.store.invalidate(app: app)
+    }
     screenshotStore.remove(previousScreenshotURL)
 
     var result: [String: Any] = [

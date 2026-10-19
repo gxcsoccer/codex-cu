@@ -79,8 +79,11 @@ Key properties, all implemented and pinned by `FormatParityTests`:
 - diffs: removed-ID ranges, `+`/`~` + tab, `Selected:` block and the explanatory
   note.
 
-Element IDs are **stable per element for the process lifetime** (a registry keyed
-by the AX element), which is why real captures show gaps such as 0, 4, 26. Diffs
+An `AXObserver` invalidation monitor (50 ms debounce) marks the snapshot stale
+when the app changes from another process, mirroring the original's
+`RefetchableSkyshotAXTree`; the next action refetches by criteria. Element IDs are
+**stable per element for the process lifetime** (a registry keyed by the AX
+element), which is why real captures show gaps such as 0, 4, 26. Diffs
 therefore report genuine removals instead of ID churn. After an action invalidates
 the snapshot, an old ID is **refetched by criteria** (role/identifier/title/
 description): a unique match is reused, otherwise the observed "no longer valid"
