@@ -85,10 +85,11 @@ same `Selected:` block and note.
 
 ### 10. Frame display-id stability
 
-**Evidence**: frames need collision-free ids; the original's scheme is unknown.
-**Current**: per-frame offsets (`1e9 * index`, plus backend id); nested OOPIFs
-verified to two levels.
-**Settle it**: observe id churn when frames are added/removed in the original.
+**Status: addressed (our side).** Bases are allocated per frame id in a per-tab
+registry, independent of enumeration order, and reset on navigation; a unit test
+swaps frame order and asserts identical ids, and a live three-level OOPIF test
+asserts id stability across observations. The original's exact scheme remains
+unknown.
 
 ### 11. iab / extension / MCP-app backends
 

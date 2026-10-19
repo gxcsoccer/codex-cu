@@ -130,17 +130,20 @@ export class BrowserTab {
     this.playwright = new PlaywrightAPI(this);
     this.axIndex = new Map(); // display id -> action descriptor
     this.iframeSessions = new Map(); // targetId -> flattened session
+    this.frameOffsets = new Map(); // stable frame key -> display-id base
+    this.nextFrameOffset = 1;
   }
 
   async goto(url) {
     this.domIds = null;
     this.iframeSessions.clear();
+    this.resetFrameOffsets();
     await this.connection.send('Page.navigate', { url }, this.sessionId);
   }
 
   async back() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(-1) }, this.sessionId); }
   async forward() { this.domIds = null; await this.connection.send('Page.navigateToHistoryEntry', { entryId: await this.historyEntry(1) }, this.sessionId); }
-  async reload() { this.domIds = null; this.iframeSessions.clear(); await this.connection.send('Page.reload', {}, this.sessionId); }
+  async reload() { this.domIds = null; this.iframeSessions.clear(); this.resetFrameOffsets(); await this.connection.send('Page.reload', {}, this.sessionId); }
   async close() { await this.connection.send('Target.closeTarget', { targetId: this.id }); }
   async markDeliverable() { this.status = 'deliverable'; }
   async markHandoff() { this.status = 'handoff'; }
@@ -224,7 +227,7 @@ export class BrowserTab {
       if (!owner) continue;
       const ownerId = parent ? `${parent.prefix}${owner.nodeId}` : String(owner.nodeId);
       const prefix = `f${index}:`;
-      const base = index * 1_000_000;
+      const base = this.frameBase(`s:${frame.id}`);
       const nodes = frameNodes.map((node, position) => ({
         ...node,
         nodeId: `${prefix}${node.nodeId}`,
@@ -317,7 +320,7 @@ export class BrowserTab {
       if (!owner) continue;
       const ownerId = parent ? `${mergedById.get(parent.frameId).prefix}${owner.nodeId}` : String(owner.nodeId);
       const prefix = `o${index}:`;
-      const base = 1_000_000_000 * index;
+      const base = this.frameBase(`o:${entry.frameId}`);
       const nodes = entry.nodes.map((node, position) => ({
         ...node,
         nodeId: `${prefix}${node.nodeId}`,
@@ -329,6 +332,20 @@ export class BrowserTab {
       mergedById.set(entry.frameId, { prefix, nodes });
       merged.push(...nodes);
     }
+  }
+
+  /** Stable display-id base per frame, independent of enumeration order. */
+  frameBase(key) {
+    if (!this.frameOffsets.has(key)) {
+      this.frameOffsets.set(key, this.nextFrameOffset * 1_000_000_000_000);
+      this.nextFrameOffset += 1;
+    }
+    return this.frameOffsets.get(key);
+  }
+
+  resetFrameOffsets() {
+    this.frameOffsets.clear();
+    this.nextFrameOffset = 1;
   }
 
   descriptorFor(index) {

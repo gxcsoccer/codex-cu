@@ -166,3 +166,50 @@ test('Playwright version is pinned and drift fails closed', () => {
     else process.env.CODEX_CU_ALLOW_PLAYWRIGHT_DRIFT = saved;
   }
 });
+
+test('three levels of nested cross-site iframes merge and click', { skip: !endpoint }, async () => {
+  const level4 = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end('<title>L4</title><button id=deep>L4 Button</button>');
+  });
+  const level3 = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>L3</title><iframe src="http://127.0.0.1:${level4.address().port}/"></iframe>`);
+  });
+  const level2 = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>L2</title><iframe src="http://localhost:${level3.address().port}/"></iframe>`);
+  });
+  const level1 = http.createServer((request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.end(`<title>L1</title><iframe src="http://127.0.0.1:${level2.address().port}/"></iframe>`);
+  });
+  await new Promise((resolve) => level4.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => level3.listen(0, '0.0.0.0', resolve));
+  await new Promise((resolve) => level2.listen(0, '127.0.0.1', resolve));
+  await new Promise((resolve) => level1.listen(0, '0.0.0.0', resolve));
+  const provider = new PlaywrightBrowserProvider({ endpoint });
+  const browser = await provider.getBrowser();
+  try {
+    const tab = await browser.createTab(`http://localhost:${level1.address().port}/`);
+    await tab.page.waitForTimeout(1200);
+    const deepFrame = tab.page.frames().find((frame) => frame.url().includes(String(level4.address().port)));
+    assert.ok(deepFrame, 'deep frame loaded');
+    await deepFrame.evaluate(() => document.getElementById('deep').addEventListener('click', (event) => { event.target.textContent = 'Hit'; }));
+
+    const first = await tab.getAXState({ disableDiff: true });
+    assert.match(first, /button L4 Button/);
+    const line = first.split('\n').find((candidate) => candidate.includes('button L4 Button'));
+    const index = Number(line.trim().split(' ')[0]);
+    const second = await tab.getAXState({ disableDiff: true });
+    const secondLine = second.split('\n').find((candidate) => candidate.includes('button L4 Button'));
+    assert.equal(Number(secondLine.trim().split(' ')[0]), index, 'frame offset is stable');
+
+    await tab.click(index);
+    assert.equal(await deepFrame.locator('#deep').textContent(), 'Hit');
+    await tab.close();
+  } finally {
+    await provider.close();
+    await Promise.all([level1, level2, level3, level4].map((server) => new Promise((resolve) => server.close(resolve))));
+  }
+});

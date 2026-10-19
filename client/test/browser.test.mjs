@@ -320,9 +320,44 @@ test('iframe accessibility trees are merged under the owner element', async () =
   const browser = await provider.getBrowser();
   const tab = await browser.createTab('https://new.test/');
   const text = await tab.getAXState();
-  assert.match(text, /\t\t1500000 RootWebArea Frame/);
-  assert.match(text, /\t\t\t1000201 button Inside/);
+  assert.match(text, /\t\t1000000500000 RootWebArea Frame/);
+  assert.match(text, /\t\t\t1000000000201 button Inside/);
 
-  await tab.click(1000201);
+  await tab.click(1000000000201);
   assert.equal(connection.calls.filter((call) => call.method === 'DOM.getBoxModel').at(-1).params.backendNodeId, 201);
+});
+
+test('frame display ids do not depend on enumeration order', async () => {
+  let reversed = false;
+  const frameNodes = (prefix, backend) => ({ nodes: [
+    { nodeId: '1', ignored: false, role: { value: 'RootWebArea' }, name: { value: prefix } },
+    { nodeId: '2', parentId: '1', backendDOMNodeId: backend, ignored: false, role: { value: 'button' }, name: { value: `${prefix} Button` } },
+  ] });
+  const connection = new FakeConnection({
+    'Target.createTarget': { targetId: 'NEW' },
+    'Target.attachToTarget': { sessionId: 'S2' },
+    'Page.getFrameTree': () => {
+      const frames = [{ frame: { id: 'A' } }, { frame: { id: 'B' } }];
+      return { frameTree: { frame: { id: 'ROOT' }, childFrames: reversed ? frames.reverse() : frames } };
+    },
+    'Accessibility.getFullAXTree': (params) => {
+      if (params?.frameId === 'A') return frameNodes('A', 201);
+      if (params?.frameId === 'B') return frameNodes('B', 202);
+      return { nodes: [
+        { nodeId: '1', ignored: false, role: { value: 'RootWebArea' }, name: { value: 'Page' } },
+        { nodeId: '5', parentId: '1', backendDOMNodeId: 101, ignored: false, role: { value: 'Iframe' }, name: { value: '' } },
+      ] };
+    },
+    'DOM.getFrameOwner': (params) => ({ backendNodeId: params.frameId === 'A' ? 101 : 101 }),
+    'DOM.enable': {},
+  });
+  const provider = new CdpBrowserProvider({ fetchImpl, connect: async () => connection });
+  const browser = await provider.getBrowser();
+  const tab = await browser.createTab('https://new.test/');
+  const first = await tab.getAXState({ disableDiff: true });
+  reversed = true;
+  const second = await tab.getAXState({ disableDiff: true });
+  const idOf = (text, name) => Number(text.split('\n').find((line) => line.includes(`${name} Button`)).trim().split(' ')[0]);
+  assert.equal(idOf(first, 'A'), idOf(second, 'A'));
+  assert.equal(idOf(first, 'B'), idOf(second, 'B'));
 });

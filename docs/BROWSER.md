@@ -99,10 +99,12 @@ collide with page ids; element-index clicks work inside iframes.
   providers, because a page session cannot attach those targets.
 
 Nested OOPIFs resolve their owner in the **parent frame's** session (the page
-session cannot see them); entries are merged parent-first. Actions follow the
-entry's session and coordinate space (page-relative for in-process frames,
-frame-local for OOPIF); both are verified live, including a two-level
-cross-site nest. Frame
+session cannot see them); entries are merged parent-first. Frame display-id
+bases come from a per-tab registry keyed by the frame id, so ids stay stable when
+frame enumeration order changes and are reset only on navigation. Actions follow
+the entry's session and coordinate space (page-relative for in-process frames,
+frame-local for OOPIF); live coverage includes a **three-level** cross-site nest
+and an id-stability assertion across observations. Frame
 ownership is still not annotated in the text, same as the original;
 `frameLocator` remains available on the Playwright backend.
 
